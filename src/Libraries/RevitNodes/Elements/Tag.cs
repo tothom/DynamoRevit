@@ -34,7 +34,7 @@ namespace Revit.Elements
         /// <param name="tag"></param>
         private Tag(Autodesk.Revit.DB.IndependentTag tag)
         {
-            SafeInit(() => InitElement(tag));
+            SafeInit(() => InitElement(tag), true);
         }
 
         /// <summary>
