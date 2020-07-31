@@ -1,0 +1,4 @@
+<ViewExtensionDefinition>
+  <AssemblyPath>..\Revit\ReadOnlyViewExtension.dll</AssemblyPath>
+  <TypeName>Dynamo.ReadOnlyViewExtension.ViewExtension</TypeName>
+</ViewExtensionDefinition>
