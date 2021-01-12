@@ -696,7 +696,7 @@ namespace Revit.Elements.Views
         /// <param name="sheetNumber">Sheet Number as String.</param>
         /// <param name="titleBlockFamilyType">Titleblock that will be assigned to created Sheet.</param>
         /// <param name="view">View to be placed on Sheet.</param>
-        /// <param name="location">iew's location on Sheet.</param>
+        /// <param name="location">View's location on Sheet.</param>
         /// <returns></returns>
         public static Sheet ByNameNumberTitleBlockViewAndLocation(string sheetName, string sheetNumber, FamilyType titleBlockFamilyType, View view, Autodesk.DesignScript.Geometry.Point location)
         {
@@ -717,35 +717,22 @@ namespace Revit.Elements.Views
         /// Duplicates A Sheet. 
         /// </summary>
         /// <param name="sheet">The Sheet to be Duplicated.</param>
-        /// <param name="DuplicateWithView">Set to true that Duplicate sheet with views.</param>
-        /// <param name="viewDuplicateOption">Enter View Duplicate Option: 0 = Duplicate. 1 = AsDependent. 2 = WithDetailing.</param>
+        /// <param name="duplicateWithContents">Set to true that Duplicate sheet with contents</param>
+        /// <param name="duplicateWithView">Set to true that Duplicate sheet with views.</param>
+        /// <param name="viewDuplicateOption">Enter View Duplicate Option: Duplicate, AsDependent or WithDetailing.</param>
         /// <param name="prefix"></param>
-        /// <param name="suffix"></param>
+        /// <param name="suffix">When prefix and suffix are both empty, suffix will set a default value - " - Copy".</param>
         /// <returns></returns>
-        public static Sheet DuplicateSheet(Sheet sheet, bool DuplicateWithView = false, int viewDuplicateOption = 0, string prefix = "", string suffix = "")
+        public static Sheet DuplicateSheet(Sheet sheet, bool duplicateWithContents = false, bool duplicateWithView = false, string viewDuplicateOption = "Duplicate", string prefix = "", string suffix = "")
         {            
             if (sheet == null)
                 throw new ArgumentNullException(nameof(sheet));
 
-            ViewDuplicateOption Option = 0;
-            switch (viewDuplicateOption)
-            {
-                case 0:
-                    Option = ViewDuplicateOption.Duplicate;
-                    break;
-                case 1:
-                    Option = ViewDuplicateOption.AsDependent;
-                    break;
-                case 2:
-                    Option = ViewDuplicateOption.WithDetailing;
-                    break;
-                default:
-                    throw new ArgumentException(Properties.Resources.ViewDuplicateOptionOutofRange);
-            }
+            ViewDuplicateOption Option = (ViewDuplicateOption)Enum.Parse(typeof(ViewDuplicateOption), viewDuplicateOption);
 
             if (String.IsNullOrEmpty(prefix) && String.IsNullOrEmpty(suffix))
             {
-                throw new ArgumentNullException(Properties.Resources.SheetDuplicateNeedFix);
+                suffix = " - Copy";
             }
 
             Sheet newSheet = null;
@@ -770,12 +757,20 @@ namespace Revit.Elements.Views
                             var oldSheet = (element as ViewSheet).ToDSType(false) as Sheet;
                             if (oldSheet.SheetNumber.Equals(newSheetNumber))
                             {
-                                if ((DuplicateWithView && oldElements.Count() > 1) || (!DuplicateWithView && oldElements.Count() == 1))  
+                                if ((duplicateWithView && oldElements.Count() > 1) || (!duplicateWithView && oldElements.Count() == 1))  
                                 {
                                     newSheet = oldSheet;
                                     TraceElements.AddRange(oldElements);
-                                }                                
-                            }                                
+                                }
+                                if(newSheet != null)
+                                {
+                                    if (duplicateWithContents)
+                                        DuplicateSheetAnnotations(sheet, newSheet);
+                                    else
+                                        DeleteSheetAnnotations(newSheet);
+                                }
+
+                            }
                         }
                     }
                     if(newSheet == null)
@@ -813,18 +808,23 @@ namespace Revit.Elements.Views
                     newSheet = new Sheet(viewSheet);
                     newSheet.InternalSetSheetName(newSheetName);
                     newSheet.InternalSetSheetNumber(newSheetNumber);
+                    SetSheetInformation(sheet, newSheet);
 
                     TraceElements.Add(newSheet.InternalElement);
 
                     // Copy Annotation Elements from sheet to new sheet by ElementTransformUtils.CopyElements
-                    DuplicateSheetAnnotations(sheet, newSheet);
+                    if(duplicateWithContents)
+                        DuplicateSheetAnnotations(sheet, newSheet);
+                    
+                    if (duplicateWithView)
+                    {
+                        // Copy ScheduleSheetInstance except RevisionSchedule from sheet to new sheet by ElementTransformUtils.CopyElements
+                        DuplicateScheduleSheetInstance(sheet, newSheet);
 
-                    // Copy ScheduleSheetInstance except RevisionSchedule from sheet to new sheet by ElementTransformUtils.CopyElements
-                    DuplicateScheduleSheetInstance(sheet, newSheet);
-
-                    // Duplicate Viewport in sheet and place on new sheet
-                    if (DuplicateWithView)
+                        // Duplicate Viewport in sheet and place on new sheet
                         TraceElements.AddRange(DuplicateViewport(sheet, newSheet, Option, prefix, suffix));
+                    }
+                        
                 }                
                                 
                 ElementBinder.SetElementsForTrace(TraceElements);
@@ -862,6 +862,26 @@ namespace Revit.Elements.Views
 
         #endregion
 
+        #region Private Helper
+
+        private static void SetSheetInformation(Sheet oldSheet, Sheet newSheet)
+        {
+            List<BuiltInParameter> Filters = new List<BuiltInParameter>
+            {
+                BuiltInParameter.SHEET_APPROVED_BY,
+                BuiltInParameter.SHEET_DESIGNED_BY,
+                BuiltInParameter.SHEET_CHECKED_BY,
+                BuiltInParameter.SHEET_DRAWN_BY
+            };
+            foreach(var parameter in Filters)
+            {
+                var oldParam = oldSheet.InternalViewSheet.get_Parameter(parameter);
+                var value = oldParam.AsString();
+                var newParam = newSheet.InternalViewSheet.get_Parameter(parameter);
+                newParam.Set(value);
+            }
+        }
+
         private static void DuplicateSheetAnnotations(Sheet oldSheet, Sheet newSheet)
         {
             List<BuiltInCategory> Filters = new List<BuiltInCategory>
@@ -873,13 +893,43 @@ namespace Revit.Elements.Views
                 BuiltInCategory.OST_TextNotes
             };
             List<ElementId> list = new List<ElementId>();
+            List<ElementId> currentList = new List<ElementId>();
             foreach(var category in Filters)
             {
                 list.AddRange(new FilteredElementCollector(Document, oldSheet.InternalElementId).OfCategory(category).ToElementIds());
+                currentList.AddRange(new FilteredElementCollector(Document, newSheet.InternalElementId).OfCategory(category).ToElementIds());
             }
             if(list.Any<ElementId>())
             {
+                if (currentList.Any<ElementId>() && currentList.Count == list.Count)
+                    return;
+                else if (currentList.Any<ElementId>() && currentList.Count != list.Count)
+                    DeleteSheetAnnotations(newSheet);
                 ElementTransformUtils.CopyElements(oldSheet.InternalViewSheet, list, newSheet.InternalViewSheet, null, null);
+            }
+        }
+
+        private static void DeleteSheetAnnotations(Sheet sheet)
+        {
+            List<BuiltInCategory> Filters = new List<BuiltInCategory>
+            {
+                BuiltInCategory.OST_IOSDetailGroups,
+                BuiltInCategory.OST_Dimensions,
+                BuiltInCategory.OST_GenericAnnotation,
+                BuiltInCategory.OST_Lines,
+                BuiltInCategory.OST_TextNotes
+            };
+            List<ElementId> list = new List<ElementId>();
+            foreach (var category in Filters)
+            {
+                list.AddRange(new FilteredElementCollector(Document, sheet.InternalElementId).OfCategory(category).ToElementIds());
+            }
+            if(list.Any<ElementId>())
+            {
+                foreach(var id in list)
+                {
+                    Document.Delete(id);
+                }
             }
         }
 
@@ -990,5 +1040,7 @@ namespace Revit.Elements.Views
 
             return IsUnique;
         }
+
+        #endregion
     }
 }

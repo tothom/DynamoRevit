@@ -156,6 +156,7 @@ namespace Revit.Elements.Views
             return bmp;
         }
 
+        #region ViewType
         private static string ViewTypeString(ViewType vt)
         {
             switch (vt)
@@ -176,6 +177,90 @@ namespace Revit.Elements.Views
                     return "Section View";
             }
         }
+        #endregion
+
+        #region Discipline
+
+        /// <summary>
+        ///  The Discipline of the view. 
+        /// </summary>
+        public string Discipline
+        {
+            get
+            {
+                if (InternalView.HasViewDiscipline())
+                    return InternalView.Discipline.ToString();
+                else
+                    return null;
+            }
+        }
+
+        /// <summary>
+        ///  Set Discipline of View.
+        /// </summary>
+        /// <param name="discipline"></param>
+        /// <returns></returns>
+        public View SetDiscipline(string discipline)
+        {
+            ViewDiscipline viewDiscipline;
+            viewDiscipline = (ViewDiscipline)Enum.Parse(typeof(ViewDiscipline), discipline);
+
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            if(InternalView.CanModifyViewDiscipline())
+            {
+                var param = InternalView.get_Parameter(BuiltInParameter.VIEW_DISCIPLINE);
+                param.Set((int)viewDiscipline);
+            }
+            else
+            {
+                throw new Exception(String.Format(Properties.Resources.CantModifyInView, "ViewDiscipline"));
+            }
+            
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
+        }
+
+        #endregion
+
+        #region View DisplayStyle
+
+        /// <summary>
+        ///  The DisplayStyle of the view. Returns DisplayStyle.Wireframe if the view has no display style.
+        /// </summary>
+        public string Displaystyle
+        {
+            get
+            {
+                if (InternalView.HasDisplayStyle())
+                    return InternalView.DisplayStyle.ToString();
+                else
+                    return null;
+            }
+        }
+
+        /// <summary>
+        ///  Set DisplayStyle of View.
+        /// </summary>
+        /// <param name="displayStyle"></param>
+        /// <returns></returns>
+        public View SetDisplayStyle(string displayStyle)
+        {
+            DisplayStyle displaystyle;
+            displaystyle = (DisplayStyle)Enum.Parse(typeof(DisplayStyle), displayStyle);
+
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            if(InternalView.CanModifyDisplayStyle())
+                InternalView.DisplayStyle = displaystyle;
+            else
+            {
+                throw new Exception(String.Format(Properties.Resources.CantModifyInView, "DisplayStyle"));
+            }
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+            return this;
+        }
+
+        #endregion
 
         public override string ToString()
         {
@@ -316,12 +401,144 @@ namespace Revit.Elements.Views
             return this;
         }
 
+        /// <summary>
+        /// Gets graphic overrides for a category in view.
+        /// </summary>
+        /// <param name="category"></param>
+        /// <returns></returns>
+        public Revit.Filter.OverrideGraphicSettings GetCategoryOverrides(Category category)
+        {
+            Autodesk.Revit.DB.ElementId catId = category.InternalCategory.Id;
+            if (!this.InternalView.IsCategoryOverridable(catId))
+            {
+                throw new ArgumentException(Properties.Resources.CategoryVisibilityOverrideError);
+            }
+
+            return new Filter.OverrideGraphicSettings(InternalView.GetCategoryOverrides(catId));
+        }
+
+        /// <summary>
+        /// Checks if elements of the given category are set to be invisible (hidden) in this view. 
+        /// </summary>
+        /// <param name="category"></param>
+        /// <returns></returns>
+        public bool IsCategoryHidden(Category category)
+        {
+            Autodesk.Revit.DB.ElementId catId = category.InternalCategory.Id;
+
+            return InternalView.GetCategoryHidden(catId);
+        }
+
+        #endregion
+
+        #region Hide Temporary
+
+        /// <summary>
+        /// Set categories to be temporarily hidden in the view. 
+        /// </summary>
+        /// <param name="categories"></param>
+        /// <returns></returns>
+        public Revit.Elements.Views.View HideCategoriesTemporary(IEnumerable<Category> categories)
+        {
+            List<ElementId> CatIds = new List<ElementId>();
+            foreach (var cat in categories)
+            {
+                CatIds.Add(cat.InternalCategory.Id);
+            }
+
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            if (this.InternalView.IsTemporaryHideIsolateActive())
+            {
+                this.InternalView.DisableTemporaryViewMode(TemporaryViewMode.TemporaryHideIsolate);
+            }
+            this.InternalView.HideCategoriesTemporary(CatIds);
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
+        }
+
+        /// <summary>
+        /// Set elements to be temporarily hidden in the view. To hide a group completely, you must also include all members of all groups and nested groups in your input. 
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        public Revit.Elements.Views.View HideElementsTemporary(IEnumerable<Element> elements)
+        {
+            List<ElementId> EleIds = new List<ElementId>();
+            foreach (var ele in elements)
+            {
+                EleIds.Add(ele.InternalElement.Id);
+            }
+
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            if (this.InternalView.IsTemporaryHideIsolateActive())
+            {
+                this.InternalView.DisableTemporaryViewMode(TemporaryViewMode.TemporaryHideIsolate);
+            }
+            this.InternalView.HideElementsTemporary(EleIds);
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
+        }
+
+        #endregion
+
+        #region Isolate Temporary
+
+        /// <summary>
+        /// Set categories to be temporarily isolated in the view.
+        /// </summary>
+        /// <param name="categories"></param>
+        /// <returns></returns>
+        public Revit.Elements.Views.View IsolateCategoriesTemporary(IEnumerable<Category> categories)
+        {
+            List<ElementId> CatIds = new List<ElementId>();
+            foreach (var cat in categories)
+            {
+                CatIds.Add(cat.InternalCategory.Id);
+            }
+
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            if (this.InternalView.IsTemporaryHideIsolateActive())
+            {
+                this.InternalView.DisableTemporaryViewMode(TemporaryViewMode.TemporaryHideIsolate);
+            }
+            this.InternalView.IsolateCategoriesTemporary(CatIds);
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
+        }
+
+        /// <summary>
+        /// Set elements to be temporarily isolated in the view. To isolate a group completely, you must also include all members of all groups and nested groups in your input. 
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        public Revit.Elements.Views.View IsolateElementsTemporary(IEnumerable<Element> elements)
+        {
+            List<ElementId> EleIds = new List<ElementId>();
+            foreach (var ele in elements)
+            {
+                EleIds.Add(ele.InternalElement.Id);
+            }
+
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            if (this.InternalView.IsTemporaryHideIsolateActive())
+            {
+                this.InternalView.DisableTemporaryViewMode(TemporaryViewMode.TemporaryHideIsolate);
+            }
+            this.InternalView.IsolateElementsTemporary(EleIds);
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
+        }
+
         #endregion
 
         #region Scale
 
         /// <summary>
-        ///     Set View Scale
+        ///     Set View Scale.
         /// </summary>
         /// <param name="scale">View scale is the ration of true model size to paper size.</param>
         /// <returns name="view">View</returns>
@@ -360,14 +577,26 @@ namespace Revit.Elements.Views
         #region Duplicate
 
         /// <summary>
+        /// Identifies if this view can be duplicated with specified viewDuplicateOption
+        /// </summary>
+        /// <param name="viewDuplicateOption">Enter View Duplicate Option: Duplicate, AsDependent or WithDetailing.</param>
+        /// <returns></returns>
+        public Boolean CanViewBeDuplicated(string viewDuplicateOption = "Duplicate")
+        {
+            ViewDuplicateOption Option = (ViewDuplicateOption)Enum.Parse(typeof(ViewDuplicateOption),viewDuplicateOption);
+
+            return InternalView.CanViewBeDuplicated(Option);
+        }
+
+        /// <summary>
         /// Duplicates A view. 
         /// </summary>
         /// <param name="view">The View to be Duplicated</param>
-        /// <param name="viewDuplicateOption">Enter View Duplicate Option: 0 = Duplicate. 1 = AsDependent. 2 = WithDetailing.</param>
+        /// <param name="viewDuplicateOption">Enter View Duplicate Option: Duplicate, AsDependent or WithDetailing.</param>
         /// <param name="prefix"></param>
         /// <param name="suffix"></param>
         /// <returns></returns>
-        public static Revit.Elements.Views.View DuplicateView(View view, int viewDuplicateOption = 0, string prefix = "", string suffix = "")
+        public static Revit.Elements.Views.View DuplicateView(View view, string viewDuplicateOption = "Duplicate", string prefix = "", string suffix = "")
         {
             View newView = null;
 
@@ -376,21 +605,7 @@ namespace Revit.Elements.Views
             if (view is Sheet)
                 throw new ArgumentException(Properties.Resources.DuplicateViewCantApplySheet);
 
-            ViewDuplicateOption Option = 0;
-            switch(viewDuplicateOption)
-            {
-                case 0:
-                    Option = ViewDuplicateOption.Duplicate;
-                    break;
-                case 1:
-                    Option = ViewDuplicateOption.AsDependent;
-                    break;
-                case 2:
-                    Option = ViewDuplicateOption.WithDetailing;                    
-                    break;
-                default:
-                    throw new ArgumentException(Properties.Resources.ViewDuplicateOptionOutofRange);
-            }
+            ViewDuplicateOption Option = (ViewDuplicateOption)Enum.Parse(typeof(ViewDuplicateOption), viewDuplicateOption);
 
             try
             {
@@ -470,7 +685,7 @@ namespace Revit.Elements.Views
             return newView;
         }
 
-        private static Boolean CheckUniqueViewName(String ViewName)
+        private static Boolean CheckUniqueViewName(String viewName)
         {
             bool IsUnique = true;
 
@@ -479,7 +694,7 @@ namespace Revit.Elements.Views
                 .ToList();
             foreach (var v in views)
             {
-                if (v.Name.Equals(ViewName))
+                if (v.Name.Equals(viewName))
                 {
                     IsUnique = false;
                     break;
@@ -529,43 +744,43 @@ namespace Revit.Elements.Views
         }
 
         /// <summary>
-        /// Set CropBox Active status
+        /// Set CropBox Active status.
         /// </summary>
-        /// <param name="IsActive"></param>
+        /// <param name="isActive"></param>
         /// <returns></returns>
-        public View SetCropBoxActive(bool IsActive)
+        public View SetCropBoxActive(bool isActive)
         {
-            if (this.InternalView.CropBoxActive == IsActive)
+            if (this.InternalView.CropBoxActive == isActive)
                 return this;
             else
             {
                 RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
-                InternalView.CropBoxActive = IsActive;
+                InternalView.CropBoxActive = isActive;
                 RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
                 return this;
             }
         }
 
         /// <summary>
-        /// Set CropBox visible status
+        /// Set CropBox visible status.
         /// </summary>
-        /// <param name="IsVisible"></param>
+        /// <param name="isVisible"></param>
         /// <returns></returns>
-        public View SetCropBoxVisible(bool IsVisible)
+        public View SetCropBoxVisible(bool isVisible)
         {
-            if (this.InternalView.CropBoxVisible == IsVisible)
+            if (this.InternalView.CropBoxVisible == isVisible)
                 return this;
             else
             {
                 RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
-                InternalView.CropBoxVisible = IsVisible;
+                InternalView.CropBoxVisible = isVisible;
                 RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
                 return this;
             }
         }
 
         /// <summary>
-        /// Set CropBox for a view
+        /// Set CropBox for a view.
         /// </summary>
         /// <param name="boundingBox"></param>
         /// <returns></returns>
@@ -601,6 +816,71 @@ namespace Revit.Elements.Views
             {
                 return InternalView.RightDirection.ToVector();
             }
+        }
+
+        #endregion
+
+        #region View SketchPlane
+
+        /// <summary>
+        ///  The sketch plane assigned to the view for model curve creation. 
+        /// </summary>
+        public SketchPlane SketchPlane
+        {
+            get
+            {
+                if (InternalView.SketchPlane != null)
+                    return InternalView.SketchPlane.ToDSType(true) as SketchPlane;
+                else
+                    return null;
+            }
+        }
+
+        /// <summary>
+        ///  Set SketchPlane of View.
+        /// </summary>
+        /// <param name="sketchPlane"></param>
+        /// <returns></returns>
+        public View SetSketchPlane(SketchPlane sketchPlane)
+        {
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            InternalView.SketchPlane = sketchPlane.InternalSketchPlane;
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
+        }
+
+        #endregion
+
+        #region PartsVisibility
+        
+        /// <summary>
+        /// The visibility setting for parts in this view. 
+        /// </summary>
+        public string Partsvisibility
+        {
+            get
+            {
+                return InternalView.PartsVisibility.ToString();
+            }
+        }
+
+        /// <summary>
+        ///  Set PartsVisibility of view
+        /// </summary>
+        /// <param name="partsVisibility"></param>
+        /// <returns></returns>
+        public View SetPartsVisibility(string partsVisibility)
+        {
+            PartsVisibility parts;
+            parts = (PartsVisibility)Enum.Parse(typeof(PartsVisibility), partsVisibility);
+
+            RevitServices.Transactions.TransactionManager.Instance.EnsureInTransaction(Application.Document.Current.InternalDocument);
+            var param = InternalView.get_Parameter(BuiltInParameter.VIEW_PARTS_VISIBILITY);
+            param.Set((int)parts);
+            RevitServices.Transactions.TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
         }
 
         #endregion

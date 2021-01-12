@@ -1,5 +1,44 @@
+## 0.3.0
+* Rename "Element Types" to "Element Classes" distinguished from "ElementType".
+* Improve AnalysisDisplay Nodes.
+* Upgrade DynamoSample file to Revit 2022.
+
+## 0.2.25
+* Update DynamoCore version 2.10.0 to updated nuget packages.
+
+## 0.2.24
+* Add icons for new TagNodes.
+* Upgrade DynamoCore version to 2.10.0.
+
+## 0.2.23
+* Upgrade DynamoCore version to 2.9.0 with ASM 227.
+
+## 0.2.22
+* Improve a Systemtests, CanPurgeUnusedElementsFromDocument, which use lots of element id and will fail due to changes in RevitAPI.
+* Fix a issue that it will have an offset when select a face or faces from Mass FamilyInstance into Dynamo.
+* Add some new Tag nodes - Tag.HeadLocation, Tag.LeaderElbow, Tag.LeaderEnd, Tag.SetHeadLocation, Tag.SetLeaderElbow, Tag.SetLeaderEnd, Tag.LeaderEndCondition, Tag.SetLeaderEndCondition, LeaderEnd Condition
+
+
+## 0.2.21
+* Restore the Hide Dimension nodes and Add Dimension.ByElementDirection
+* Add icons for some view nodes.
+
+## 0.2.20
+* Add some new Nodes - Dimension.ByFaces, Dimension.ByEdges, Dimension.ByReferences, ElementCurveReference.ByCurve, ElementFaceReference.BySurface.
+* Emergency Upgrade - Hide Dimension new nodes temporary.
+
+## 0.2.19
 * Fix a bug - filter out unavailable Parameters from Material.
 * Add some view 3d properties - View.Outline, View.Origin, View.Scale, View.CropBox, View.SetCropBox, View.CropBoxActive, View.SetCropBoxActive, View.CropBoxVisible, View.SetCropBoxVisible, View.ViewDirection, View.RightDirection.
+* Add some view properties - View.Discipline, View.SetDiscipline, View.DisplayStyle, View.SetDisplayStyle, View.SketchPlane, View.SetSketchPlane.
+* Add some view properties - View.CanViewBeDuplicated, View.Partsvisibility, View.SetPartsVisibility
+* Add some new nodes - View.GetCategoryOverrides, View.IsCategoryHidden, Element.OverridesInView, Element.IsHiddeninView
+* Update DynamoCore to 2.8.0 for Dynamo CPython3 engine.
+* Add some View Nodes - View.HideCategoriesTemporary, View.HideElementsTemporary, View.IsolateCategoriesTemporary, View.IsolateElementsTemporary.
+* Improve DuplicateSheet Node - add "duplicateWithContents" option, add default suffix value when prefix & suffix are both empty.
+* Improve DuplicateSheet Node - Set Sheet information when duplicating; Improve View Temporary Nodes.
+* Add 4 UI Nodes - View Duplicate Options, View Disciplines, View DisplayStyles, View PartsVisibilitys
+* Fix bug - Element.GetParentElement can't get StairsRun Parent Element.
 
 ## 0.2.18
 * Add a Category ScheduleOnSheet and its nodes - ScheduleOnSheet.Sheet, ScheduleOnSheet.Schedule, ScheduleOnSheet.BySheetViewLocation, ScheduleOnSheet.Location and ScheduleOnSheet.SetLocation

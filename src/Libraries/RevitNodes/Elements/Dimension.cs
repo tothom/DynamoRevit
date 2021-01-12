@@ -154,7 +154,7 @@ namespace Revit.Elements
         #region Public static constructors
 
         /// <summary>
-        /// Construct a Revit Dimension from at least two elements
+        /// Construct a Revit Linear Dimension from at least two elements.
         /// </summary>
         /// <param name="view">View to place dimension in</param>
         /// <param name="referenceElements">Elements to dimension</param>
@@ -166,7 +166,7 @@ namespace Revit.Elements
         {
             var elements = referenceElements.ToList();
 
-            if (elements.Count < 2) throw new Exception(Properties.Resources.NotEnoughDataError);
+            if (elements.Count < 2) throw new Exception(string.Format(Properties.Resources.NotEnoughDataError, "Elements"));
 
             Autodesk.Revit.DB.View revitView = (Autodesk.Revit.DB.View)view.InternalElement;
             Line revitLine = null;
@@ -200,6 +200,168 @@ namespace Revit.Elements
             }
 
             return new Dimension(revitView, revitLine, array, suffix, prefix);
+        }
+
+        /// <summary>
+        /// Construct a Revit Linear Dimension from at least two Faces.
+        /// </summary>
+        /// <param name="view">View to place dimension in</param>
+        /// <param name="referenceSurfaces">Faces to dimension</param>
+        /// <param name="line">location of the dimension</param>
+        /// <param name="suffix">Suffix</param>
+        /// <param name="prefix">Prefix</param>
+        /// <returns></returns>
+        public static Dimension ByFaces(Revit.Elements.Views.View view, IEnumerable<Autodesk.DesignScript.Geometry.Surface> referenceSurfaces, [DefaultArgument("null")]Autodesk.DesignScript.Geometry.Line line, string suffix = "", string prefix = "")
+        {
+            var surfaces = referenceSurfaces.ToList();
+            if (surfaces.Count < 2) throw new Exception(string.Format(Properties.Resources.NotEnoughDataError, "Surfaces"));
+
+            Autodesk.Revit.DB.View revitView = (Autodesk.Revit.DB.View)view.InternalElement;
+            Line revitLine = null;
+
+            if (!view.IsAnnotationView())
+            {
+                throw new Exception(Properties.Resources.ViewDoesNotSupportAnnotations);
+            }
+
+            if(line == null)
+            {
+                BoundingBoxXYZ boundingBoxFirstElement = surfaces[0].BoundingBox.ToRevitType();
+                if ((boundingBoxFirstElement) == null) throw new Exception(Properties.Resources.ElementCannotBeAnnotatedError);
+
+                BoundingBoxXYZ boundingBoxLastElement = surfaces[surfaces.Count - 1].BoundingBox.ToRevitType();
+                if ((boundingBoxLastElement) == null) throw new Exception(Properties.Resources.ElementCannotBeAnnotatedError);
+
+                revitLine = Line.CreateBound(GetMidpoint(boundingBoxFirstElement), GetMidpoint(boundingBoxLastElement));
+
+            }
+            else
+                revitLine = (Line)line.ToRevitType(true);
+
+            ReferenceArray array = new ReferenceArray();
+            foreach(var surface in surfaces)
+            {
+                var reference = Revit.GeometryReferences.ElementFaceReference.TryGetFaceReference(surface);
+                array.Append(reference.InternalReference);
+            }
+
+            return new Dimension(revitView, revitLine, array, suffix, prefix);
+        }
+
+        /// <summary>
+        /// Construct a Revit Linear Dimension from at least two Edges.
+        /// </summary>
+        /// <param name="view">View to place dimension in</param>
+        /// <param name="referenceCurves">Edges to dimension</param>
+        /// <param name="line">location of the dimension</param>
+        /// <param name="suffix">Suffix</param>
+        /// <param name="prefix">Prefix</param>
+        /// <returns></returns>
+        public static Dimension ByEdges(Revit.Elements.Views.View view, IEnumerable<Autodesk.DesignScript.Geometry.Curve> referenceCurves, [DefaultArgument("null")]Autodesk.DesignScript.Geometry.Line line, string suffix = "", string prefix = "")
+        {
+            var curves = referenceCurves.ToList();
+            if (curves.Count < 2) throw new Exception(string.Format(Properties.Resources.NotEnoughDataError, "Curves"));
+
+            Autodesk.Revit.DB.View revitView = (Autodesk.Revit.DB.View)view.InternalElement;
+            Line revitLine = null;
+            
+            if (!view.IsAnnotationView())
+            {
+                throw new Exception(Properties.Resources.ViewDoesNotSupportAnnotations);
+            }
+
+            if (line == null)
+            {
+                BoundingBoxXYZ boundingBoxFirstElement = curves[0].BoundingBox.ToRevitType();
+                if ((boundingBoxFirstElement) == null) throw new Exception(Properties.Resources.ElementCannotBeAnnotatedError);
+
+                BoundingBoxXYZ boundingBoxLastElement = curves[curves.Count - 1].BoundingBox.ToRevitType();
+                if ((boundingBoxLastElement) == null) throw new Exception(Properties.Resources.ElementCannotBeAnnotatedError);
+
+                revitLine = Line.CreateBound(GetMidpoint(boundingBoxFirstElement), GetMidpoint(boundingBoxLastElement));
+            }
+            else
+                revitLine = (Line)line.ToRevitType(true);
+
+            ReferenceArray array = new ReferenceArray();
+            foreach(var curve in curves)
+            {
+                var reference = Revit.GeometryReferences.ElementCurveReference.TryGetCurveReference(curve);
+                array.Append(reference.InternalReference);
+            }
+
+            return new Dimension(revitView, revitLine, array, suffix, prefix);
+        }
+
+        /// <summary>
+        /// Construct a Revit Linear Dimension from at least two ElementGeometryReference.
+        /// </summary>
+        /// <param name="view">View to place dimension in</param>
+        /// <param name="referenceGeometries">References to dimension, e.g. ElementCurveReference and ElementFaceReference</param>
+        /// <param name="line">location of the dimension</param>
+        /// <param name="suffix">Suffix</param>
+        /// <param name="prefix">Prefix</param>
+        /// <returns></returns>
+        public static Dimension ByReferences(Revit.Elements.Views.View view, IEnumerable<Revit.GeometryReferences.ElementGeometryReference> referenceGeometries, Autodesk.DesignScript.Geometry.Line line, string suffix = "", string prefix = "")
+        {
+            var geometries = referenceGeometries.ToList();
+            if (geometries.Count < 2) throw new Exception(string.Format(Properties.Resources.NotEnoughDataError, "ElementGeometryReference"));
+
+            Autodesk.Revit.DB.View revitView = (Autodesk.Revit.DB.View)view.InternalElement;
+            Line revitLine = (Line)line.ToRevitType(true);
+
+            ReferenceArray array = new ReferenceArray();
+            foreach(var geo in geometries)
+            {
+                array.Append(geo.InternalReference);
+            }
+
+            return new Dimension(revitView, revitLine, array, suffix, prefix);
+        }
+
+        /// <summary>
+        /// Create a Dimension for an Element in the specified direction and view.
+        /// </summary>
+        /// <param name="view">View to place dimension in</param>
+        /// <param name="element">The element of generated Dimension</param>
+        /// <param name="direction">The direction to create Dimension</param>
+        /// <param name="line">location of the dimension</param>
+        /// <param name="suffix">Suffix</param>
+        /// <param name="prefix">Prefix</param>
+        /// <returns></returns>
+        public static Dimension ByElementDirection(Revit.Elements.Views.View view, Revit.Elements.Element element, Autodesk.DesignScript.Geometry.Vector direction, [DefaultArgument("null")]Autodesk.DesignScript.Geometry.Line line, string suffix = "", string prefix = "")
+        {
+            var revitDirection = direction.ToRevitType();
+
+            List<Autodesk.Revit.DB.PlanarFace> planars = new List<PlanarFace>();
+
+            ReferenceArray array = new ReferenceArray();
+
+            var opt = new Options();
+            opt.ComputeReferences = true;
+
+            var faces = element.InternalGeometry(false).OfType<Autodesk.Revit.DB.Solid>().SelectMany(x => x.Faces.OfType<Autodesk.Revit.DB.PlanarFace>());
+            var references = faces.Select(x => x.Reference);
+            Line revitLine = null;
+            
+            foreach (var face in faces)
+            {
+                var isParallel = direction.IsParallel(face.FaceNormal.ToVector());
+                if (isParallel)
+                {
+                    array.Append(face.Reference);
+                    planars.Add(face);
+                }
+            }
+
+            if (planars.Count < 2) throw new Exception(string.Format(Properties.Resources.NotEnoughDataError, "Surface on this Direction"));
+
+            if (line == null)
+                revitLine = Line.CreateBound(planars[0].Origin, planars[0].Origin.Add(direction.ToXyz()));
+            else
+                revitLine = (Line)line.ToRevitType(true);
+
+            return new Dimension(view.InternalView, revitLine, array, suffix, prefix);
         }
 
         #endregion

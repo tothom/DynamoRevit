@@ -133,6 +133,15 @@ namespace Revit.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Can&apos;t modify {0} of this view.
+        /// </summary>
+        internal static string CantModifyInView {
+            get {
+                return ResourceManager.GetString("CantModifyInView", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to You must supply a Category..
         /// </summary>
         internal static string CategoryArgumentException {
@@ -295,7 +304,7 @@ namespace Revit.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to You can use the {0} or {1} to turn this Curve into a Revit Element..
+        ///   Looks up a localized string similar to The input curves should come from a Revit Element. You can use the {0} or {1} to turn this Curve into a Revit Element..
         /// </summary>
         internal static string CurveReferenceHint {
             get {
@@ -484,7 +493,7 @@ namespace Revit.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to You can use the {0} to turn this Surface into a Revit Element, then extract a ElementFaceReference from it..
+        ///   Looks up a localized string similar to The input surfaces should come from a Revit Element. You can use the {0} to turn this Surface into a Revit Element, then extract a ElementFaceReference from it..
         /// </summary>
         internal static string FaceReferenceHint {
             get {
@@ -907,7 +916,7 @@ namespace Revit.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to You need at least two elements for a dimension..
+        ///   Looks up a localized string similar to You need at least two {0} for a dimension..
         /// </summary>
         internal static string NotEnoughDataError {
             get {

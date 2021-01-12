@@ -33,13 +33,13 @@
     {
       "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
       "NodeType": "FunctionNode",
-      "FunctionSignature": "Revit.Elements.Views.Sheet.DuplicateSheet@Revit.Elements.Views.Sheet,bool,int,string,string",
+      "FunctionSignature": "Revit.Elements.Views.Sheet.DuplicateSheet@Revit.Elements.Views.Sheet,bool,bool,string,string,string",
       "Id": "a5f649718c57476ca77807b153ebb4b9",
       "Inputs": [
         {
           "Id": "a8afc8bdc5914f10a1f0ee033b774e64",
           "Name": "sheet",
-          "Description": "The Sheet to be Duplicated\n\nSheet",
+          "Description": "The Sheet to be Duplicated.\n\nSheet",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -47,8 +47,8 @@
         },
         {
           "Id": "3fa1dd722ec14c9f85cb3cc6bac34e1b",
-          "Name": "DuplicateWithView",
-          "Description": "Set to true that Duplicate sheet with views\n\nbool\nDefault value : false",
+          "Name": "duplicateWithContents",
+          "Description": "Set to true that Duplicate sheet with contents\n\nbool\nDefault value : false",
           "UsingDefaultValue": true,
           "Level": 2,
           "UseLevels": false,
@@ -56,8 +56,8 @@
         },
         {
           "Id": "bb268d4b73b34ff6910c84f449c41825",
-          "Name": "viewDuplicateOption",
-          "Description": "Enter View Duplicate Option: 0 = Duplicate. 1 = AsDependent. 2 = WithDetailing.\n\nint\nDefault value : 0",
+          "Name": "duplicateWithView",
+          "Description": "Set to true that Duplicate sheet with views.\n\nbool\nDefault value : false",
           "UsingDefaultValue": true,
           "Level": 2,
           "UseLevels": false,
@@ -65,6 +65,15 @@
         },
         {
           "Id": "bd69198a52eb479f93ac9de7e09f8bbd",
+          "Name": "viewDuplicateOption",
+          "Description": "Enter View Duplicate Option: Duplicate, AsDependent or WithDetailing.\n\nstring\nDefault value : \"Duplicate\"",
+          "UsingDefaultValue": true,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "4ebef69340564b73b3991cc83c9711cd",
           "Name": "prefix",
           "Description": "string\nDefault value : \"\"",
           "UsingDefaultValue": true,
@@ -73,9 +82,9 @@
           "KeepListStructure": false
         },
         {
-          "Id": "4ebef69340564b73b3991cc83c9711cd",
+          "Id": "90fc8d96793543d1a81b7c7c21c7eda7",
           "Name": "suffix",
-          "Description": "string\nDefault value : \"\"",
+          "Description": "When prefix and suffix are both empty, suffix will set a default value - \" - Copy\".\n\nstring\nDefault value : \"\"",
           "UsingDefaultValue": true,
           "Level": 2,
           "UseLevels": false,
@@ -94,7 +103,7 @@
         }
       ],
       "Replication": "Auto",
-      "Description": "Duplicates A Sheet.\n\nSheet.DuplicateSheet (sheet: Sheet, DuplicateWithView: bool = false, viewDuplicateOption: int = 0, prefix: string = \"\", suffix: string = \"\"): Sheet"
+      "Description": "Duplicates A Sheet.\n\nSheet.DuplicateSheet (sheet: Sheet, duplicateWithContents: bool = false, duplicateWithView: bool = false, viewDuplicateOption: string = \"Duplicate\", prefix: string = \"\", suffix: string = \"\"): Sheet"
     },
     {
       "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
@@ -165,6 +174,27 @@
       ],
       "Replication": "Disabled",
       "Description": "Selection between a true and false."
+    },
+    {
+      "ConcreteType": "DSRevitNodesUI.ViewDuplicateOptions, DSRevitNodesUI",
+      "SelectedIndex": 1,
+      "SelectedString": "Duplicate",
+      "NodeType": "ExtensionNode",
+      "Id": "85d6adc03ce14cc7b7aa85c9df14c3a2",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "3980e5845cf64a21abbea32cb24e2c63",
+          "Name": "DuplicateOption",
+          "Description": "The selected DuplicateOption",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "View Duplicate Option"
     }
   ],
   "Connectors": [
@@ -180,13 +210,23 @@
     },
     {
       "Start": "4ed85b08bc434aea9185f9ad91fff31d",
-      "End": "bd69198a52eb479f93ac9de7e09f8bbd",
-      "Id": "a2add830a105473297df96d35bef5e51"
+      "End": "4ebef69340564b73b3991cc83c9711cd",
+      "Id": "5649724e899c44ba9cbc668ad94a1ea5"
+    },
+    {
+      "Start": "4aba2c84fa4e46bfbb3f3d20182827c8",
+      "End": "bb268d4b73b34ff6910c84f449c41825",
+      "Id": "1141d5f393fb4f6596688c7e700247c1"
     },
     {
       "Start": "4aba2c84fa4e46bfbb3f3d20182827c8",
       "End": "3fa1dd722ec14c9f85cb3cc6bac34e1b",
-      "Id": "8ee73c4dcec74a928697c423d10a6a54"
+      "Id": "64dc66b9dd94447aabc5b6a119d3b46a"
+    },
+    {
+      "Start": "3980e5845cf64a21abbea32cb24e2c63",
+      "End": "bd69198a52eb479f93ac9de7e09f8bbd",
+      "Id": "f749810c0c434698be22bc6fcddbb326"
     }
   ],
   "Dependencies": [],
@@ -197,7 +237,7 @@
       "ScaleFactor": 1.0,
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
-      "Version": "2.6.1.9130",
+      "Version": "2.8.0.2195",
       "RunType": "Manual",
       "RunPeriod": "1000"
     },
@@ -215,59 +255,69 @@
     },
     "NodeViews": [
       {
-        "ShowGeometry": true,
-        "Name": "Sheets",
         "Id": "129af38fda2a4a96b1ccd3a009f89501",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
+        "Name": "Sheets",
+        "ShowGeometry": true,
         "Excluded": false,
         "X": 93.25,
         "Y": 136.0
       },
       {
-        "ShowGeometry": true,
-        "Name": "Sheet.DuplicateSheet",
         "Id": "a5f649718c57476ca77807b153ebb4b9",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
+        "Name": "Sheet.DuplicateSheet",
+        "ShowGeometry": true,
         "Excluded": false,
         "X": 339.25,
         "Y": 202.0
       },
       {
-        "ShowGeometry": true,
-        "Name": "String",
         "Id": "b35ba7c0df714594bf5507c5c7fca188",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
+        "Name": "String",
+        "ShowGeometry": true,
         "Excluded": false,
-        "X": 93.25,
-        "Y": 329.0
+        "X": 106.30637982195844,
+        "Y": 410.89910979228489
       },
       {
-        "ShowGeometry": true,
-        "Name": "Sheet.Views",
         "Id": "1c6ca6cc7c2b47fdb200ba3175886864",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
+        "Name": "Sheet.Views",
+        "ShowGeometry": true,
         "Excluded": false,
         "X": 710.25,
         "Y": 202.0
       },
       {
-        "ShowGeometry": true,
-        "Name": "Boolean",
         "Id": "e9718d850a20480fab2029dec15db719",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
+        "Name": "Boolean",
+        "ShowGeometry": true,
         "Excluded": false,
         "X": 93.25,
         "Y": 245.00000000000003
+      },
+      {
+        "Id": "85d6adc03ce14cc7b7aa85c9df14c3a2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Name": "View Duplicate Options",
+        "ShowGeometry": true,
+        "Excluded": false,
+        "X": 27.231454005934665,
+        "Y": 315.91097922848667
       }
     ],
     "Annotations": [],
-    "X": -27.0,
-    "Y": -51.0,
-    "Zoom": 1.0
+    "X": -60.942499999999995,
+    "Y": -21.15500000000003,
+    "Zoom": 0.8425
   }
 }

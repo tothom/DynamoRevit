@@ -407,6 +407,7 @@ namespace Revit.Elements
             return deletedElements; 
         }
 
+        #region Get/Set Parameter
         /// <summary>
         /// Get a parameter by name of an element
         /// </summary>
@@ -463,6 +464,30 @@ namespace Revit.Elements
         }
 
         /// <summary>
+        /// Set one of the element's parameters.
+        /// </summary>
+        /// <param name="parameterName">The name of the parameter to set.</param>
+        /// <param name="value">The value.</param>
+        public Element SetParameterByName(string parameterName, object value)
+        {
+            var param = GetParameterByName(parameterName);
+
+            if (param == null)
+                throw new Exception(Properties.Resources.ParameterNotFound);
+
+            TransactionManager.Instance.EnsureInTransaction(DocumentManager.Instance.CurrentDBDocument);
+
+            var dynval = value as dynamic;
+            Revit.Elements.InternalUtilities.ElementUtils.SetParameterValue(param, dynval);
+
+            TransactionManager.Instance.TransactionTaskDone();
+
+            return this;
+        }
+        #endregion
+
+        #region Overrides & Hidden In ActiveView
+        /// <summary>
         /// Override the element's color in the active view.
         /// </summary>
         /// <param name="color">The color to apply to a solid fill on the element.</param>
@@ -505,28 +530,29 @@ namespace Revit.Elements
         }
 
         /// <summary>
-        /// Set one of the element's parameters.
+        /// Gets graphic overrides for an element in the view. 
         /// </summary>
-        /// <param name="parameterName">The name of the parameter to set.</param>
-        /// <param name="value">The value.</param>
-        public Element SetParameterByName(string parameterName, object value)
+        public Revit.Filter.OverrideGraphicSettings OverridesInView
         {
-            var param = GetParameterByName(parameterName);
+            get
+            {
+                var view = DocumentManager.Instance.CurrentUIDocument.ActiveView;
 
-            if (param == null)
-                throw new Exception(Properties.Resources.ParameterNotFound);
-
-            TransactionManager.Instance.EnsureInTransaction(DocumentManager.Instance.CurrentDBDocument);
-
-            var dynval = value as dynamic;
-            Revit.Elements.InternalUtilities.ElementUtils.SetParameterValue(param, dynval);
-
-            TransactionManager.Instance.TransactionTaskDone();
-
-            return this;
+                return new Filter.OverrideGraphicSettings(view.GetElementOverrides(InternalElementId));
+            }
         }
 
+        /// <summary>
+        /// Identifies if the element has been permanently hidden in the view.
+        /// </summary>
+        /// <param name="view"></param>
+        /// <returns></returns>
+        public bool IsHiddeninView(Revit.Elements.Views.View view)
+        {
+            return InternalElement.IsHidden(view.InternalView);
+        }
 
+        #endregion
 
         /// <summary>
         /// Get all of the Geometry associated with this object
@@ -814,6 +840,7 @@ namespace Revit.Elements
             }
         }
 
+        #region Get Child Elements
         /// <summary>
         /// Gets the child Elements of the current Element.
         /// </summary>
@@ -925,7 +952,9 @@ namespace Revit.Elements
                                                                      .ToList();
             return stairComponentElements;
         }
+        #endregion
 
+        #region Get Parent Elemnt
         /// <summary>
         /// Gets the parent element of the Element.
         /// </summary>
@@ -1020,15 +1049,23 @@ namespace Revit.Elements
         private static Autodesk.Revit.DB.Element GetParentComponentFromStairElements(Autodesk.Revit.DB.Element element)
         {
             Autodesk.Revit.DB.Element parent;
-            var stairElement = element as Autodesk.Revit.DB.Architecture.StairsLanding;
 
-            if (stairElement == null)
+            if(element is Autodesk.Revit.DB.Architecture.StairsLanding)
+            {
+                var stairElement = element as Autodesk.Revit.DB.Architecture.StairsLanding;
+                parent = stairElement.GetStairs();
+            }
+            else if(element is Autodesk.Revit.DB.Architecture.StairsRun)
+            {
+                var stairElement = element as Autodesk.Revit.DB.Architecture.StairsRun;
+                parent = stairElement.GetStairs();
+            }
+            else
                 throw new InvalidOperationException(Properties.Resources.NoParentElement);
 
-            // For StairLandings and StairRuns we use the GetStairs() to retrive the parent Stair
-            parent = stairElement.GetStairs();
             return parent;
         }
+        #endregion
 
         #region Geometry Join
         /// <summary>

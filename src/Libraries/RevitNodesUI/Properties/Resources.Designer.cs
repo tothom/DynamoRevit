@@ -169,7 +169,7 @@ namespace DSRevitNodesUI.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to All elements in the active document of a given type..
+        ///   Looks up a localized string similar to All elements in the active document of a given class..
         /// </summary>
         internal static string ElementsofTypeDescription {
             get {
@@ -178,7 +178,7 @@ namespace DSRevitNodesUI.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to All element subtypes..
+        ///   Looks up a localized string similar to All element subclasses..
         /// </summary>
         internal static string ElementTypesDescription {
             get {
@@ -273,6 +273,15 @@ namespace DSRevitNodesUI.Properties {
         internal static string HorizontalTextAlignmentStyleSelectorDescription {
             get {
                 return ResourceManager.GetString("HorizontalTextAlignmentStyleSelectorDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tag LeaderEnd Condition.
+        /// </summary>
+        internal static string LeaderEndConditionDescription {
+            get {
+                return ResourceManager.GetString("LeaderEndConditionDescription", resourceCulture);
             }
         }
         
@@ -394,7 +403,7 @@ namespace DSRevitNodesUI.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to All elements in the active document of a given type..
+        ///   Looks up a localized string similar to All elements in the active document of a given class..
         /// </summary>
         internal static string PortDataAllElementsInDocumentToolTip {
             get {
@@ -457,7 +466,7 @@ namespace DSRevitNodesUI.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An element type..
+        ///   Looks up a localized string similar to An element class..
         /// </summary>
         internal static string PortDataElementTypeToolTip {
             get {
@@ -826,11 +835,47 @@ namespace DSRevitNodesUI.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to View Discipline..
+        /// </summary>
+        internal static string ViewDisciplinesDescription {
+            get {
+                return ResourceManager.GetString("ViewDisciplinesDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View DisplayStyle..
+        /// </summary>
+        internal static string ViewDisplayStylesDescription {
+            get {
+                return ResourceManager.GetString("ViewDisplayStylesDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View Duplicate Option..
+        /// </summary>
+        internal static string ViewDuplicateOptionsDescription {
+            get {
+                return ResourceManager.GetString("ViewDuplicateOptionsDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to All view family types in the current document..
         /// </summary>
         internal static string ViewFamilyTypesDescription {
             get {
                 return ResourceManager.GetString("ViewFamilyTypesDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View PartsVisibility..
+        /// </summary>
+        internal static string ViewPartsVisibilitysDescription {
+            get {
+                return ResourceManager.GetString("ViewPartsVisibilitysDescription", resourceCulture);
             }
         }
         
