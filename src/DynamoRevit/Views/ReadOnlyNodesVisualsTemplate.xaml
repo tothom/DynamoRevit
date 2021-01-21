@@ -1,0 +1,14 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:viewModels="clr-namespace:Dynamo.Applications.ViewModel;assembly=DynamoRevitDS"
+                    xmlns:views="clr-namespace:Dynamo.Applications.Views;assembly=DynamoRevitDS">
+
+
+    <!--Add NodeViewViewModels here-->
+    <DataTemplate DataType="{x:Type viewModels:ReadOnlyNodeViewModel}">
+        <Grid>
+            <!--Add NodeViewViews here-->
+            <views:ReadOnlyNodeView></views:ReadOnlyNodeView>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

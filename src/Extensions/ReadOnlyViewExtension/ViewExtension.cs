@@ -43,11 +43,11 @@ namespace Dynamo.ReadOnlyViewExtension
             {
                 if (ReadOnlyMenuItem.IsChecked)
                 {
-                    TransactionManager.ReadOnlyMode = true;
+                    TransactionManager.Instance.ReadOnlyMode = true;
                 }
                 else
                 {
-                    TransactionManager.ReadOnlyMode = false;
+                    TransactionManager.Instance.ReadOnlyMode = false;
                     var cmd = new DynamoModel.ForceRunCancelCommand(true, false);
                     commandExecutive.ExecuteCommand(cmd, Guid.NewGuid().ToString(), ViewExtension.ExtensionName);
                 }

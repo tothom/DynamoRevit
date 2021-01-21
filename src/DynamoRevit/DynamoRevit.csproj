@@ -133,6 +133,7 @@
     <Compile Include="$(SolutionDir)AssemblySharedInfoGenerator\AssemblySharedInfo.cs">
       <Link>Properties\AssemblySharedInfo.cs</Link>
     </Compile>
+    <Compile Include="Converters\BoolToVisibilityConverter.cs" />
     <Compile Include="DynamoRevitApp.cs" />
     <Compile Include="Models\RevitDynamoModel.cs" />
     <Compile Include="Models\RevitNodeModel.cs" />
@@ -150,8 +151,14 @@
     </Compile>
     <Compile Include="RevitPathResolver.cs" />
     <Compile Include="ViewModel\DynamoRevitViewModel.cs" />
+    <Compile Include="ViewModel\ReadOnlyModeManager.cs" />
+    <Compile Include="ViewModel\ReadOnlyNodeViewModel.cs" />
     <Compile Include="ViewModel\RevitWatchHandler.cs" />
     <Compile Include="ViewModel\RevitWatch3DViewModel.cs" />
+    <Compile Include="Views\DynamoRevitView.cs" />
+    <Compile Include="Views\ReadOnlyNodeView.xaml.cs">
+      <DependentUpon>ReadOnlyNodeView.xaml</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -196,6 +203,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Ionic.Zip.xml" />
+    <Resource Include="Resources\padlock.png" />
     <EmbeddedResource Include="Resources\Category.Revit.svg" />
     <EmbeddedResource Include="Resources\LayoutSpecs.json" />
     <Content Include="Resources\logo_square_32x32.png" />
@@ -210,6 +218,19 @@
       <Project>{e4701f9e-41ab-4044-8166-85d924feb632}</Project>
       <Name>RevitServices</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Views\ReadOnlyNodesVisualsTemplate.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Views\ReadOnlyNodeView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

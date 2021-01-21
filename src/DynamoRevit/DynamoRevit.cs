@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -33,6 +34,7 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using RevitServices.Persistence;
 using RevitServices.Threading;
+using RevitServices.Transactions;
 using DynUpdateManager = Dynamo.Updates.UpdateManager;
 using MessageBox = System.Windows.Forms.MessageBox;
 
@@ -193,13 +195,15 @@ namespace Dynamo.Applications
         /// </summary>
         public enum RevitDynamoModelState { NotStarted, StartedUIless, StartedUI };
 
-        private static List<Action> idleActions;
+        private static readonly List<Action> idleActions;
         private static DynamoRevitCommandData extCommandData;
         private static DynamoViewModel dynamoViewModel;
         private static RevitDynamoModel revitDynamoModel;
+        private static DynamoView dynamoView;
         private static bool handledCrash;
-        private static List<Exception> preLoadExceptions;
+        private static readonly List<Exception> preLoadExceptions;
         private static Action shutdownHandler;
+        private static ReadOnlyModeManager readOnlyModeManager;
 
         /// <summary>
         /// The modelState tels us if the RevitDynamoModel was started and if has the
@@ -217,6 +221,7 @@ namespace Dynamo.Applications
             extCommandData = null;
             dynamoViewModel = null;
             revitDynamoModel = null;
+            dynamoView = null;
             handledCrash = false;
             ModelState = RevitDynamoModelState.NotStarted;
             preLoadExceptions = new List<Exception>();
@@ -292,7 +297,9 @@ namespace Dynamo.Applications
 
                     // Let the host (e.g. Revit) control the rendering mode
                     var save = RenderOptions.ProcessRenderMode;
-                    InitializeCoreView().Show();
+                    dynamoView = InitializeCoreView();
+                    dynamoView.Show();
+                    readOnlyModeManager = new ReadOnlyModeManager(revitDynamoModel, dynamoViewModel, dynamoView);
                     RenderOptions.ProcessRenderMode = save;
                     revitDynamoModel.Logger.Log(Dynamo.Applications.Properties.Resources.WPFRenderMode + RenderOptions.ProcessRenderMode.ToString());
 
@@ -539,6 +546,7 @@ namespace Dynamo.Applications
                     WatchHandler =
                         new RevitWatchHandler(revitDynamoModel.PreferenceSettings)
                 });
+
             return viewModel;
         }
 
@@ -546,6 +554,7 @@ namespace Dynamo.Applications
         {
             IntPtr mwHandle = Process.GetCurrentProcess().MainWindowHandle;
             var dynamoView = new DynamoView(dynamoViewModel);
+            ModifyDynamoView(dynamoView);
             new WindowInteropHelper(dynamoView).Owner = mwHandle;
 
             handledCrash = false;
@@ -555,6 +564,43 @@ namespace Dynamo.Applications
             dynamoView.Loaded += (o, e) => UpdateLibraryLayoutSpec();
 
             return dynamoView;
+        }
+
+        private static void ModifyDynamoView(DynamoView dynamoView)
+        {
+            // Get the RunSettingsControl field from the DynamoWindow
+            var runsettingField = dynamoView.GetType().GetField("RunSettingsControl", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            // Get the value from the field, this should be of type UserControl
+            var runsettingsValue = runsettingField.GetValue(dynamoView) as UserControl;
+
+            // Get the grid from the RunSettingsControl
+            var runsettingsGrid = runsettingsValue.Content as System.Windows.Controls.Grid;
+
+            // Get StackPanel from the RunSettingsControls main grid, this is where all of its UIElements are defined
+            var runsettingStackPanel = runsettingsGrid.Children.OfType<StackPanel>().FirstOrDefault();
+
+            var checkBoxItem = new System.Windows.Controls.CheckBox
+            {
+                Content = "Read Only Mode",
+                IsChecked = false,
+                VerticalContentAlignment = System.Windows.VerticalAlignment.Center
+            };
+
+            checkBoxItem.Click += OnReadOnlyModeCheckBoxChecked;
+
+            // Add a new control to the RunSettingsControls StackPanel
+            runsettingStackPanel.Children.Add(checkBoxItem);
+        }
+
+        private static void OnReadOnlyModeCheckBoxChecked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            var checkBox = sender as CheckBox;
+            if (!checkBox.IsChecked.HasValue ||
+                checkBox.IsChecked.Value == TransactionManager.Instance.ReadOnlyMode)
+                return;
+
+            TransactionManager.Instance.ReadOnlyMode = checkBox.IsChecked.Value;
         }
 
         /// <summary>

@@ -17,7 +17,25 @@ namespace RevitServices.Transactions
                 handler(obj);
         }
 
-        public static bool ReadOnlyMode { get; set; }
+        private bool readOnlyMode;
+        public bool ReadOnlyMode 
+        {
+            get { return readOnlyMode; }
+            set
+            {
+                if (readOnlyMode == value)
+                    return;
+
+                readOnlyMode = value;
+                OnReadOnlyModeChanged(EventArgs.Empty);
+            } 
+        }
+
+        public event EventHandler<EventArgs> ReadOnlyModeChanged;
+        private void OnReadOnlyModeChanged(EventArgs e)
+        {
+            ReadOnlyModeChanged?.Invoke(this, e);
+        }
 
         private static TransactionManager manager;
         
