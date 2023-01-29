@@ -22,8 +22,6 @@ using Family = Autodesk.Revit.DB.Family;
 using FamilySymbol = Autodesk.Revit.DB.FamilySymbol;
 using Level = Autodesk.Revit.DB.Level;
 using Parameter = Autodesk.Revit.DB.Parameter;
-using Revit.Application;
-using System.Text.RegularExpressions;
 
 using RevitServices.Elements;
 using RevitServices.Transactions;

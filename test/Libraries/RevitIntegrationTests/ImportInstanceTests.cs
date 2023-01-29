@@ -100,7 +100,7 @@ namespace RevitSystemTests
         protected static IList<Element> GetAllImportInstances()
         {
             ElementClassFilter ef = new ElementClassFilter(typeof(Autodesk.Revit.DB.ImportInstance));
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.WherePasses(ef);
             return fec.ToElements();
         }

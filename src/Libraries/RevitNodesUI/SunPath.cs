@@ -13,7 +13,6 @@ using ProtoCore.AST.AssociativeAST;
 using RevitServices.Elements;
 using RevitServices.Persistence;
 using BuiltinNodeCategories = Revit.Elements.BuiltinNodeCategories;
-using RevitServices.Transactions;
 
 namespace DSRevitNodesUI
 {
@@ -32,7 +31,7 @@ namespace DSRevitNodesUI
             RegisterAllPorts();
 
             RevitServicesUpdater.Instance.ElementsUpdated += Updater_ElementsUpdated;
-            DynamoRevitApp.EventHandlerProxy.ViewActivated += CurrentUIApplication_ViewActivated;
+            DynamoRevitApp.UIEventHandlerProxy.ViewActivated += CurrentUIApplication_ViewActivated;
 
             DynamoRevitApp.AddIdleAction(() => CurrentUIApplicationOnViewActivated());
         }
@@ -41,7 +40,7 @@ namespace DSRevitNodesUI
         public SunSettings(IEnumerable<PortModel> inPorts, IEnumerable<PortModel> outPorts) : base(inPorts, outPorts)
         {
             RevitServicesUpdater.Instance.ElementsUpdated += Updater_ElementsUpdated;
-            DynamoRevitApp.EventHandlerProxy.ViewActivated += CurrentUIApplication_ViewActivated;
+            DynamoRevitApp.UIEventHandlerProxy.ViewActivated += CurrentUIApplication_ViewActivated;
 
             DynamoRevitApp.AddIdleAction(() => CurrentUIApplicationOnViewActivated());
         }
@@ -49,7 +48,7 @@ namespace DSRevitNodesUI
         public override void Dispose()
         {
             RevitServicesUpdater.Instance.ElementsUpdated -= Updater_ElementsUpdated;
-            DynamoRevitApp.EventHandlerProxy.ViewActivated -= CurrentUIApplication_ViewActivated;
+            DynamoRevitApp.UIEventHandlerProxy.ViewActivated -= CurrentUIApplication_ViewActivated;
 
             base.Dispose();
         }

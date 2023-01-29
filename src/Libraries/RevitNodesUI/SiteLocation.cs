@@ -1,4 +1,7 @@
-﻿using Dynamo.Applications;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Dynamo.Applications;
 using Dynamo.Applications.Models;
 using Dynamo.Controls;
 using Dynamo.Graph.Nodes;
@@ -8,14 +11,13 @@ using ProtoCore.AST.AssociativeAST;
 using Revit.GeometryConversion;
 using RevitServices.Elements;
 using RevitServices.Persistence;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+
 using BuiltinNodeCategories = Revit.Elements.BuiltinNodeCategories;
 
 namespace DSRevitNodesUI
 {
-   public class SiteLocationNodeViewCustomization : INodeViewCustomization<SiteLocation>
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
+    public class SiteLocationNodeViewCustomization : INodeViewCustomization<SiteLocation>
     {
         public void CustomizeView(SiteLocation model, NodeView nodeView)
         {

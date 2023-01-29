@@ -150,6 +150,10 @@
       <Name>DynamoRevit</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\RevitServicesUI\RevitServicesUI.csproj">
+      <Project>{35879a4a-ade4-4bbc-a79e-5e3b6f145c1e}</Project>
+      <Name>RevitServicesUI</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RevitNodes\RevitNodes.csproj">
       <Project>{0bc2a611-bd0e-4fcc-a1de-81f14ed369b2}</Project>
       <Name>RevitNodes</Name>

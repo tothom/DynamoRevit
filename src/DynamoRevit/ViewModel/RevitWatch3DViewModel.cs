@@ -13,6 +13,7 @@ using Revit.GeometryConversion;
 using RevitServices.Persistence;
 using RevitServices.Threading;
 using RevitServices.Transactions;
+using RevitServicesUI.Persistence;
 using Curve = Autodesk.DesignScript.Geometry.Curve;
 using Line = Autodesk.Revit.DB.Line;
 using Point = Autodesk.DesignScript.Geometry.Point;
@@ -51,7 +52,7 @@ namespace Dynamo.Applications.ViewModel
 
                     if (keeperId != ElementId.InvalidElementId)
                     {
-                        DocumentManager.Instance.CurrentUIDocument.Document.Delete(keeperId);
+                        DocumentManager.Instance.CurrentDBDocument.Delete(keeperId);
                         keeperId = ElementId.InvalidElementId;
                     }
 
@@ -160,12 +161,12 @@ namespace Dynamo.Applications.ViewModel
                     if (keeperId != ElementId.InvalidElementId &&
                         DocumentManager.Instance.CurrentDBDocument.GetElement(keeperId) != null)
                     {
-                        DocumentManager.Instance.CurrentUIDocument.Document.Delete(keeperId);
+                        DocumentManager.Instance.CurrentDBDocument.Delete(keeperId);
                         keeperId = ElementId.InvalidElementId;
                     }
 
                     var argsM = new object[4];
-                    argsM[0] = DocumentManager.Instance.CurrentUIDocument.Document;
+                    argsM[0] = DocumentManager.Instance.CurrentDBDocument;
                     argsM[1] = ElementId.InvalidElementId;
                     argsM[2] = geoms;
                     argsM[3] = ElementId.InvalidElementId;
@@ -392,7 +393,7 @@ namespace Dynamo.Applications.ViewModel
    
             // Never access the current document with an invalid keeperId
             // See comment at the beginning of this method.
-            var dbDoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument.Document;
+            var dbDoc = UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument.Document;
             if (null == dbDoc)
             {
                 return;

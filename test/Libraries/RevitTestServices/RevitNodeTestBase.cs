@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 using RevitServices.Persistence;
 using RevitServices.Transactions;
-
+using RevitServicesUI.Persistence;
 using TestServices;
 
 namespace RevitTestServices
@@ -29,9 +29,9 @@ namespace RevitTestServices
                 assemblyResolver.Setup();
             }
 
-            DocumentManager.Instance.CurrentUIApplication =
+            UIDocumentManager.Instance.CurrentUIApplication =
                 RTF.Applications.RevitTestExecutive.CommandData.Application;
-            DocumentManager.Instance.CurrentUIDocument =
+            UIDocumentManager.Instance.CurrentUIDocument =
                 RTF.Applications.RevitTestExecutive.CommandData.Application.ActiveUIDocument;
 
             SetupTransactionManager();

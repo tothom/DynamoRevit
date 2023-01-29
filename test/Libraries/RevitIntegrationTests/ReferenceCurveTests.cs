@@ -33,7 +33,7 @@ namespace RevitSystemTests
 
             RunCurrentModel();
 
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(CurveElement));
 
             //verify five model curves created

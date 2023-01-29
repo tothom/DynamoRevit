@@ -17,7 +17,7 @@ namespace RevitSystemTests
         public static IList<Element> GetAllFamilyInstances()
         {
             ElementClassFilter ef = new ElementClassFilter(typeof(FamilyInstance));
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.WherePasses(ef);
             return fec.ToElements();            
         }

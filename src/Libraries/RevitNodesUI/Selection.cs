@@ -7,11 +7,8 @@ using Autodesk.DesignScript.Runtime;
 using Autodesk.Revit.DB;
 
 using Dynamo.Applications;
-using Dynamo.Controls;
-using Dynamo.Interfaces;
 
 using Dynamo.Models;
-using Dynamo.Wpf;
 using ProtoCore.AST.AssociativeAST;
 
 using Revit.Elements;
@@ -28,8 +25,6 @@ using RevitDynamoModel = Dynamo.Applications.Models.RevitDynamoModel;
 using Point = Autodesk.DesignScript.Geometry.Point;
 using String = System.String;
 using UV = Autodesk.DesignScript.Geometry.UV;
-using RevitServices.EventHandler;
-using Autodesk.Revit.DB.Events;
 using CoreNodeModels;
 using DSRevitNodesUI.Properties;
 using Dynamo.Graph.Nodes;

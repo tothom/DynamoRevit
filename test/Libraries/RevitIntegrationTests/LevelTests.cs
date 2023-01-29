@@ -33,7 +33,7 @@ namespace RevitSystemTests
             RunCurrentModel();
 
             //ensure that the level count is the same
-            var levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             levelColl.OfClass(typeof(Level));
             Assert.AreEqual(levelColl.ToElements().Count(), 6);
 
@@ -45,7 +45,7 @@ namespace RevitSystemTests
             RunCurrentModel();
 
             //ensure that the level count is the same
-            levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             levelColl.OfClass(typeof(Level));
             Assert.AreEqual(levelColl.ToElements().Count(), 11);
        }
@@ -62,7 +62,7 @@ namespace RevitSystemTests
             AssertNoDummyNodes();
 
             //ensure that the level count is the same
-            var levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             levelColl.OfClass(typeof(Level));
             Assert.AreEqual(levelColl.ToElements().Count(),6);
 
@@ -73,7 +73,7 @@ namespace RevitSystemTests
             stringNode.Value = "aNewName";
             
             //ensure that the first level has new name
-            levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             levelColl.OfClass(typeof(Level));
             Assert.AreEqual(levelColl.ToElements().First().Name,"aNewName");
             Assert.AreEqual(levelColl.ToElements().Last().Name, "aNewName(5)");

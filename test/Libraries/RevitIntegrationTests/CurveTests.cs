@@ -39,14 +39,14 @@ namespace RevitSystemTests
             //to the selections
             ReferencePoint p1, p2, p3, p4;
 
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument))
             {
                 trans.Start("Create reference points for testing.");
 
-                p1 = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ(1, 5, 12));
-                p2 = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ(5, 1, 12));
-                p3 = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ(12, 1, 5));
-                p4 = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ(5, 12, 1));
+                p1 = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ(1, 5, 12));
+                p2 = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ(5, 1, 12));
+                p3 = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ(12, 1, 5));
+                p4 = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ(5, 12, 1));
 
                 trans.Commit();
             }
@@ -62,7 +62,7 @@ namespace RevitSystemTests
 
             RunCurrentModel();
 
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(CurveElement));
 
             Assert.AreEqual(fec.ToElements().Count(), 1);
@@ -121,7 +121,7 @@ namespace RevitSystemTests
 
             RunCurrentModel();
 
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(CurveElement));
 
             Assert.AreEqual(fec.ToElements().Count(), 1);
@@ -201,7 +201,7 @@ namespace RevitSystemTests
 
             RunCurrentModel();
 
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(CurveElement));
 
             Assert.AreEqual(1, fec.ToElements().Count());
@@ -215,7 +215,7 @@ namespace RevitSystemTests
             RunCurrentModel();
 
             fec = null;
-            fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(CurveElement));
             Assert.AreEqual(1, fec.ToElements().Count);
         }

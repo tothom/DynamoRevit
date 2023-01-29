@@ -9,16 +9,9 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CoreNodeModelsWpf.Nodes;
 using Autodesk.DesignScript.Runtime;
-using ProtoCore.AST.AssociativeAST;
-using Dynamo.Wpf.Nodes.Revit;
 using Microsoft.Practices.Prism.Commands;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using RevitServices.Persistence;
 using Autodesk.Revit.UI.Selection;
 using Dynamo.Logging;
@@ -186,6 +179,7 @@ namespace Dynamo.ComboNodes
 
     #region Node View Customization
 
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     public class DSModelElementsByCategorySelectionNodeViewCustomization : INodeViewCustomization<DSModelElementsByCategorySelection>
     {
         public DSModelElementsByCategorySelection Model { get; set; }
@@ -213,6 +207,7 @@ namespace Dynamo.ComboNodes
         }
     }
 
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     public class DSModelElementByCategorySelectionNodeViewCustomization : INodeViewCustomization<DSModelElementByCategorySelection>
     {
         public DSModelElementByCategorySelection Model { get; set; }
@@ -242,6 +237,7 @@ namespace Dynamo.ComboNodes
     #endregion
 
     #region Selection Helpers
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     public abstract class ElementFilterSelection<TSelection> : ElementSelection<TSelection>
     where TSelection : Element
     {
@@ -268,6 +264,7 @@ namespace Dynamo.ComboNodes
     }
 
     [IsVisibleInDynamoLibrary(false)]
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     internal class RevitElementSelectionHelper<T> : LogSourceBase, IModelSelectionHelper<T> where T : Autodesk.Revit.DB.Element
     {
 
@@ -363,6 +360,7 @@ namespace Dynamo.ComboNodes
     #region Filters
 
     [IsVisibleInDynamoLibrary(false)]
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     internal class CategoryElementSelectionFilter<T> : ISelectionFilter
     {
         public BuiltInCategory Category { get; set; }
@@ -378,6 +376,7 @@ namespace Dynamo.ComboNodes
     }
 
     [IsVisibleInDynamoLibrary(false)]
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     internal class TypeElementSelectionFilter<T> : ISelectionFilter
     {
         public string ElementTypeName { get; set; }

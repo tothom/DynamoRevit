@@ -6,7 +6,7 @@ using Dynamo.Interfaces;
 using Dynamo.ViewModels;
 
 using ProtoCore.Mirror;
-using RevitServices.Persistence;
+using RevitServicesUI.Persistence;
 using Element = Revit.Elements.Element;
 
 namespace Dynamo.Applications
@@ -38,7 +38,7 @@ namespace Dynamo.Applications
             node.Clicked += () =>
             {
                 if (element.InternalElement.IsValidObject)
-                    DocumentManager.Instance.CurrentUIDocument.ShowElements(element.InternalElement);
+                    UIDocumentManager.Instance.CurrentUIDocument.ShowElements(element.InternalElement);
             };
 
             node.Link = id.ToString(CultureInfo.InvariantCulture);

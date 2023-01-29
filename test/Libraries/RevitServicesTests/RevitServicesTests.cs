@@ -8,6 +8,7 @@ using RevitServices.Elements;
 using RevitServices.Materials;
 using RevitServices.Persistence;
 using RevitServices.Transactions;
+using RevitServicesUI.Persistence;
 
 namespace RevitServicesTests
 {
@@ -16,15 +17,15 @@ namespace RevitServicesTests
     {
         Document Document
         {
-            get { return DocumentManager.Instance.CurrentUIDocument.Document; }
+            get { return DocumentManager.Instance.CurrentDBDocument; }
         }
 
         [SetUp]
         public void Setup()
         {
-            DocumentManager.Instance.CurrentUIApplication =
+            UIDocumentManager.Instance.CurrentUIApplication =
                 RTF.Applications.RevitTestExecutive.CommandData.Application;
-            DocumentManager.Instance.CurrentUIDocument =
+            UIDocumentManager.Instance.CurrentUIDocument =
                 RTF.Applications.RevitTestExecutive.CommandData.Application.ActiveUIDocument;
         }
 

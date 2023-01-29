@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using RevitServices.Elements;
@@ -118,15 +119,20 @@ namespace RevitServices.Persistence
 
         /// <summary>
         /// Provides the currently active DB document.
-        /// This is based on the CurrentUIDocument
+        /// This is based on the CurrentUIDocument when applicable
         /// </summary>
-        public Document CurrentDBDocument {
-            get
-            {
-                var c = CurrentUIDocument;
-                return c == null ? null : c.Document;
-            }
-        }
+        public Document CurrentDBDocument { get; set; }
+        //get
+        //    {
+        //        var c = CurrentUIDocument;
+        //        return c == null ? null : c.Document;
+        //    }
+        //}
+
+        /// <summary>
+        /// Provides the current Application
+        /// </summary>
+        public Application CurrentApplication { get; set; }
 
         /// <summary>
         /// This property represents the hash code for the current active Revit
@@ -147,12 +153,14 @@ namespace RevitServices.Persistence
         /// Provides the currently active UI document.
         /// This is the document to which Dynamo is bound.
         /// </summary>
-        public UIDocument CurrentUIDocument {get; set; }
+        //[Obsolete("This property will be removed, please use the property in RevitServicesUI")]
+        //public UIDocument CurrentUIDocument {get; set; }
 
         /// <summary>
         /// Provides the current UIApplication
         /// </summary>
-        public UIApplication CurrentUIApplication { get; set; }
+        //[Obsolete("This method will be removed, please use the method in RevitServicesUI or CurrentApplication")]
+        //public UIApplication CurrentUIApplication { get; set; }
 
         /// <summary>
         /// Trigger a document regeneration in the idle context or without
