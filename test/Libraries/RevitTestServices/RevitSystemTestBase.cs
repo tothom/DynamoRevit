@@ -24,6 +24,7 @@ using RTF.Applications;
 using SystemTestServices;
 using TestServices;
 using Dynamo.Configuration;
+using RevitServicesUI.Persistence;
 
 namespace RevitTestServices
 {
@@ -150,13 +151,13 @@ namespace RevitTestServices
 
             ((HomeWorkspaceModel)ViewModel.Model.CurrentWorkspace).RunSettings.RunType = RunType.Manual;
 
-            DocumentManager.Instance.CurrentUIApplication.ViewActivating += CurrentUIApplication_ViewActivating;
+            UIDocumentManager.Instance.CurrentUIApplication.ViewActivating += CurrentUIApplication_ViewActivating;
         }
 
         [TearDown]
         public override void TearDown()
         {
-            DocumentManager.Instance.CurrentUIApplication.ViewActivating -= CurrentUIApplication_ViewActivating;
+            UIDocumentManager.Instance.CurrentUIApplication.ViewActivating -= CurrentUIApplication_ViewActivating;
 
             // Automatic transaction strategy requires that we 
             // close the transaction if it hasn't been closed by 
@@ -174,9 +175,9 @@ namespace RevitTestServices
 
         protected override void SetupCore()
         {
-            DocumentManager.Instance.CurrentUIApplication =
+            UIDocumentManager.Instance.CurrentUIApplication =
                 RevitTestExecutive.CommandData.Application;
-            DocumentManager.Instance.CurrentUIDocument =
+            UIDocumentManager.Instance.CurrentUIDocument =
                 RevitTestExecutive.CommandData.Application.ActiveUIDocument;
 
             var config = RevitTestConfiguration.LoadConfiguration();
@@ -189,8 +190,8 @@ namespace RevitTestServices
 
             emptyModelPath = Path.Combine(workingDirectory, "empty.rfa");
 
-            if (DocumentManager.Instance.CurrentUIApplication.Application.VersionNumber.Contains("2014") &&
-                DocumentManager.Instance.CurrentUIApplication.Application.VersionName.Contains("Vasari"))
+            if (DocumentManager.Instance.CurrentApplication.VersionNumber.Contains("2014") &&
+                DocumentManager.Instance.CurrentApplication.VersionName.Contains("Vasari"))
             {
                 emptyModelPath = Path.Combine(workingDirectory, "emptyV.rfa");
                 emptyModelPath1 = Path.Combine(workingDirectory, "emptyV1.rfa");
@@ -344,8 +345,8 @@ namespace RevitTestServices
         /// <param name="modelPath"></param>
         protected static UIDocument OpenAndActivateNewModel(string modelPath)
         {
-            DocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(modelPath);
-            return DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
+            UIDocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(modelPath);
+            return UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
         }
 
         /// <summary>
@@ -353,13 +354,13 @@ namespace RevitTestServices
         /// </summary>
         protected static void SwapCurrentModel(string modelPath)
         {
-            DocumentManager.Instance.CurrentUIApplication =
+            UIDocumentManager.Instance.CurrentUIApplication =
                 RevitTestExecutive.CommandData.Application;
-            DocumentManager.Instance.CurrentUIDocument =
+            UIDocumentManager.Instance.CurrentUIDocument =
                 RevitTestExecutive.CommandData.Application.ActiveUIDocument;
 
-            Document initialDoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument.Document;
-            DocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(modelPath);
+            Document initialDoc = DocumentManager.Instance.CurrentDBDocument;
+            UIDocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(modelPath);
             initialDoc.Close(false);
         }
 

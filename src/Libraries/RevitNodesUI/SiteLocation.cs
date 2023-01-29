@@ -3,31 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 
-using Autodesk.Revit.Creation;
-
 using Dynamo.Applications;
 using Dynamo.Applications.Models;
 using Dynamo.Controls;
-using Dynamo.Models;
-using Dynamo.Nodes;
 
-using Dynamo.UI;
 using Dynamo.Wpf;
 
 using ProtoCore.AST.AssociativeAST;
 using Revit.GeometryConversion;
 
-using Revit.Elements;
 using RevitServices.Elements;
 using RevitServices.Persistence;
-using Autodesk.Revit.DB.Events;
-using Dynamo.Applications;
 using Dynamo.Graph.Nodes;
 using BuiltinNodeCategories = Revit.Elements.BuiltinNodeCategories;
-using RevitServices.Transactions;
 
 namespace DSRevitNodesUI
 {
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     public class SiteLocationNodeViewCustomization : INodeViewCustomization<SiteLocation>
     {
         public void CustomizeView(SiteLocation model, NodeView nodeView)

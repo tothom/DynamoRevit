@@ -13,8 +13,10 @@ namespace RevitServices.EventHandler
         public event EventHandler<DocumentOpenedEventArgs> DocumentOpened;
         public event EventHandler<DocumentClosingEventArgs> DocumentClosing;
         public event EventHandler<DocumentClosedEventArgs> DocumentClosed;
-        public event EventHandler<ViewActivatingEventArgs> ViewActivating;
-        public event EventHandler<ViewActivatedEventArgs> ViewActivated;
+        //[Obsolete("This event will be removed, please use the event in RevitServicesUI")]
+        //public event EventHandler<ViewActivatingEventArgs> ViewActivating;
+        //[Obsolete("This event will be removed, please use the method in RevitServicesUI")]
+        //public event EventHandler<ViewActivatedEventArgs> ViewActivated;
 
         public void OnApplicationDocumentOpened(object sender, DocumentOpenedEventArgs args)
         {
@@ -31,15 +33,17 @@ namespace RevitServices.EventHandler
             InvokeEventHandler(DocumentClosed, sender, args);
         }
 
-        public void OnApplicationViewActivating(object sender, ViewActivatingEventArgs args)
-        {
-            InvokeEventHandler(ViewActivating, sender, args);
-        }
+        //[Obsolete("This method will be removed, please use the method in RevitServicesUI")]
+        //public void OnApplicationViewActivating(object sender, ViewActivatingEventArgs args)
+        //{
+        //    InvokeEventHandler(ViewActivating, sender, args);
+        //}
 
-        public void OnApplicationViewActivated(object sender, ViewActivatedEventArgs args)
-        {
-            InvokeEventHandler(ViewActivated, sender, args);
-        }
+        //[Obsolete("This method will be removed, please use the method in RevitServicesUI")]
+        //public void OnApplicationViewActivated(object sender, ViewActivatedEventArgs args)
+        //{
+        //    InvokeEventHandler(ViewActivated, sender, args);
+        //}
 
         private void InvokeEventHandler<T>(EventHandler<T> eventHandler, object sender, T args) where T: EventArgs
         {

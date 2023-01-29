@@ -28,11 +28,11 @@ namespace RevitSystemTests
                 fails.SetClearAfterRollback(true);
                 trans.SetFailureHandlingOptions(fails);
 
-                ReferencePoint rp = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ());
+                ReferencePoint rp = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ());
 
                 //make a filter for reference points.
                 ElementClassFilter ef = new ElementClassFilter(typeof(ReferencePoint));
-                FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+                FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
                 fec.WherePasses(ef);
                 Assert.AreEqual(1, fec.ToElements().Count());
 

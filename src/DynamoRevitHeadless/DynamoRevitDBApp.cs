@@ -1,41 +1,28 @@
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Resources;
-using System.Windows;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using System.Text;
+using System.Threading.Tasks;
+using Autodesk.Revit;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
-using Autodesk.Revit.UI.Events;
-using Dynamo.Applications.Properties;
-using Dynamo.Models;
 using RevitServices.Elements;
 using RevitServices.EventHandler;
 using RevitServices.Persistence;
 using RevitServices.Transactions;
-using RevitServicesUI.EventHandler;
-using MessageBox = System.Windows.Forms.MessageBox;
 
-namespace Dynamo.Applications
+namespace DynamoRevitHeadless
 {
-
-
     [Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual),
-     Regeneration(RegenerationOption.Manual)]
-    public class DynamoRevitApp : IExternalApplication
+        Regeneration(RegenerationOption.Manual)]
+    public class DynamoRevitDBApp : Autodesk.Revit.DB.IExternalDBApplication
     {
         private static readonly string assemblyName = Assembly.GetExecutingAssembly().Location;
         public static ControlledApplication ControlledApplication;
-        public static UIControlledApplication UIControlledApplication;
         public static List<IUpdater> Updaters = new List<IUpdater>();
         public static string DynamoCorePath
         {
@@ -58,7 +45,7 @@ namespace Dynamo.Applications
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             var dynamoRevitRootDirectory = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
             var dynamoRoot = GetDynamoRoot(dynamoRevitRootDirectory);
-            
+
             var assembly = Assembly.LoadFrom(Path.Combine(dynamoRevitRootDirectory, "DynamoInstallDetective.dll"));
             var type = assembly.GetType("DynamoInstallDetective.DynamoProducts");
 
@@ -84,23 +71,21 @@ namespace Dynamo.Applications
             //When there is no config file, just replace DynamoRevit by Dynamo 
             //from the 'dynamoRevitRoot' folder.
             var parent = new DirectoryInfo(dynamoRevitRoot);
-            var path =  string.Empty;
-            while(null != parent && parent.Name != @"DynamoRevit")
+            var path = string.Empty;
+            while (null != parent && parent.Name != @"DynamoRevit")
             {
                 path = Path.Combine(parent.Name, path);
                 parent = Directory.GetParent(parent.FullName);
             }
-            
+
             return parent != null ? Path.Combine(Path.GetDirectoryName(parent.FullName), @"Dynamo", path) : dynamoRevitRoot;
         }
 
         private static string dynamopath;
         private static readonly Queue<Action> idleActionQueue = new Queue<Action>(10);
         private static EventHandlerProxy proxy;
-        private static UIEventHandlerProxy uiproxy;
-        private AddInCommandBinding dynamoCommand;
 
-        private Result loadDependentComponents()
+        private ExternalDBApplicationResult loadDependentComponents()
         {
             var dynamoRevitAditionsPath = Path.Combine(Path.GetDirectoryName(assemblyName), "DynamoRevitAdditions.dll");
             if (File.Exists(dynamoRevitAditionsPath))
@@ -114,29 +99,28 @@ namespace Dynamo.Applications
                         if (dynamoRevitAditionsLoader != null)
                         {
                             dynamoRevitAditionsLoader.GetType().GetMethod("Initialize").Invoke(dynamoRevitAditionsLoader, null);
-                            return Result.Succeeded;
+                            return ExternalDBApplicationResult.Succeeded;
                         }
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    return Result.Failed;
+                    return ExternalDBApplicationResult.Failed;
                 }
 
             }
 
-            return Result.Failed;
+            return ExternalDBApplicationResult.Failed;
         }
 
-        public Result OnStartup(UIControlledApplication application)
+        public ExternalDBApplicationResult OnStartup(ControlledApplication application)
         {
             try
             {
                 if (false == TryResolveDynamoCore(application))
-                    return Result.Failed;
+                    return ExternalDBApplicationResult.Failed;
 
-                UIControlledApplication = application;
-                ControlledApplication = application.ControlledApplication;
+                ControlledApplication = application;
 
                 SubscribeAssemblyEvents();
                 SubscribeApplicationEvents();
@@ -144,95 +128,30 @@ namespace Dynamo.Applications
                 TransactionManager.SetupManager(new AutomaticTransactionStrategy());
                 ElementBinder.IsEnabled = true;
 
-                var dynamoCmdId = RevitCommandId.LookupCommandId("ID_VISUAL_PROGRAMMING_DYNAMO");
-                dynamoCommand = application.CreateAddInCommandBinding(dynamoCmdId);
-                dynamoCommand.CanExecute += canExecute;
-                dynamoCommand.BeforeExecuted += beforeExecuted;
-                dynamoCommand.Executed += executed;
-                DynamoButtonEnabled = true; //initialize
-            
                 RegisterAdditionalUpdaters(application);
 
-                RevitServicesUpdater.Initialize(DynamoRevitApp.Updaters);
+                RevitServicesUpdater.Initialize(DynamoRevitDBApp.Updaters);
                 SubscribeDocumentChangedEvent();
 
                 loadDependentComponents();
 
-                return Result.Succeeded;
+                return ExternalDBApplicationResult.Succeeded;
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString());
-                return Result.Failed;
+                return ExternalDBApplicationResult.Failed;
             }
         }
 
-        /// <summary>
-        /// Executes Dynamo command to show the Dynamo UI
-        /// </summary>
-        /// <param name="journalData">Journal data passed for the command</param>
-        /// <param name="application">Active session of Revit UI application</param>
-        /// <returns></returns>
-        public Result ExecuteDynamoCommand(IDictionary<string,string> journalData, UIApplication application)
+        public ExternalDBApplicationResult OnShutdown(ControlledApplication application)
         {
-            var data = new DynamoRevitCommandData()
-            {
-                JournalData = journalData,
-                Application = application
-            };
-
-            var cmd = new DynamoRevit();
-            return cmd.ExecuteCommand(data);
-        }
-
-        void executed(object sender, ExecutedEventArgs e)
-        {
-            ExecuteDynamoCommand(e.GetJournalData(), new UIApplication(e.ActiveDocument.Application));
-        }
-
-        void beforeExecuted(object sender, BeforeExecutedEventArgs e)
-        {
-            e.UsingCommandData = true;
-        }
-
-        void canExecute(object sender, CanExecuteEventArgs e)
-        {
-            e.CanExecute = DynamoButtonEnabled && e.ActiveDocument != null;
-        }
-
-        public Result OnShutdown(UIControlledApplication application)
-        {
-            if(dynamoCommand != null)
-            {
-                dynamoCommand.BeforeExecuted -= beforeExecuted;
-                dynamoCommand.CanExecute -= canExecute;
-                dynamoCommand.Executed -= executed;
-                dynamoCommand = null;
-            }
-
             UnsubscribeAssemblyEvents();
             UnsubscribeApplicationEvents();
             UnsubscribeDocumentChangedEvent();
             RevitServicesUpdater.DisposeInstance();
 
-            return Result.Succeeded;
+            return ExternalDBApplicationResult.Succeeded;
         }
-
-        private static void OnApplicationIdle(object sender, IdlingEventArgs e)
-        {
-            if (!idleActionQueue.Any())
-                return;
-
-            Action pendingAction = null;
-            lock (idleActionQueue)
-            {
-                pendingAction = idleActionQueue.Dequeue();
-            }
-
-            if (pendingAction != null)
-                pendingAction();
-        }
-
 
         /// <summary>
         /// Add an action to run when the application is in the idle state
@@ -260,11 +179,6 @@ namespace Dynamo.Applications
             get { return proxy; }
         }
 
-        public static UIEventHandlerProxy UIEventHandlerProxy
-        {
-            get { return uiproxy; }
-        }
-
         // should be handled by the ModelUpdater class. But there are some
         // cases where the document modifications handled there do no catch
         // certain document interactions. Those should be registered here.
@@ -272,7 +186,7 @@ namespace Dynamo.Applications
         ///     Register some document updaters. Generally, document updaters
         /// </summary>
         /// <param name="application"></param>
-        private static void RegisterAdditionalUpdaters(UIControlledApplication application)
+        private static void RegisterAdditionalUpdaters(ControlledApplication application)
         {
             var sunUpdater = new SunPathUpdater(application.ActiveAddInId);
 
@@ -289,36 +203,27 @@ namespace Dynamo.Applications
             Updaters.Add(sunUpdater);
         }
 
+        //Not removed UIControlledApplication events
         private void SubscribeApplicationEvents()
         {
-            UIControlledApplication.Idling += OnApplicationIdle;
-
             proxy = new EventHandlerProxy();
-            uiproxy = new UIEventHandlerProxy();
-
-            UIControlledApplication.ViewActivated += uiproxy.OnApplicationViewActivated;
-            UIControlledApplication.ViewActivating += uiproxy.OnApplicationViewActivating;
 
             ControlledApplication.DocumentClosing += proxy.OnApplicationDocumentClosing;
             ControlledApplication.DocumentClosed += proxy.OnApplicationDocumentClosed;
             ControlledApplication.DocumentOpened += proxy.OnApplicationDocumentOpened;
         }
 
+        //Note remove UICOntrolledApplication events
         private void UnsubscribeApplicationEvents()
         {
-            UIControlledApplication.Idling -= OnApplicationIdle;
-
-            UIControlledApplication.ViewActivated -= uiproxy.OnApplicationViewActivated;
-            UIControlledApplication.ViewActivating -= uiproxy.OnApplicationViewActivating;
-
             ControlledApplication.DocumentClosing -= proxy.OnApplicationDocumentClosing;
             ControlledApplication.DocumentClosed -= proxy.OnApplicationDocumentClosed;
             ControlledApplication.DocumentOpened -= proxy.OnApplicationDocumentOpened;
 
             proxy = null;
-            uiproxy = null;
         }
 
+        //no change
         private void SubscribeAssemblyEvents()
         {
             AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
@@ -330,6 +235,7 @@ namespace Dynamo.Applications
             //AppDomain.CurrentDomain.AssemblyLoad -= AssemblyLoad;
         }
 
+        //Note no change
         /// <summary>
         /// Handler to the ApplicationDomain's AssemblyResolve event.
         /// If an assembly's location cannot be resolved, an exception is
@@ -347,8 +253,8 @@ namespace Dynamo.Applications
 
             try
             {
-                assemblyPath = Path.Combine(DynamoRevitApp.DynamoCorePath, assemblyName);
-                if(File.Exists(assemblyPath))
+                assemblyPath = Path.Combine(DynamoRevitDBApp.DynamoCorePath, assemblyName);
+                if (File.Exists(assemblyPath))
                 {
                     return Assembly.LoadFrom(assemblyPath);
                 }
@@ -383,22 +289,17 @@ namespace Dynamo.Applications
             ControlledApplication.DocumentChanged -= RevitServicesUpdater.Instance.ApplicationDocumentChanged;
         }
 
-        public static bool DynamoButtonEnabled
-        {
-            get;
-            set;
-        }
-
+        //Note shared 95%
         /// <summary>
         /// Whether the DynamoCore and DynamoRevit are in Revit's internal Addin folder
         /// </summary>
         /// <param name="application"></param>
         /// <returns>True is that Dynamo and DynamoRevit are in Revit internal Addins folder</returns>
-        private static Boolean IsRevitInternalAddin(UIControlledApplication application)
+        private static Boolean IsRevitInternalAddin(ControlledApplication application)
         {
             if (application == null)
                 return false;
-            var revitVersion = application.ControlledApplication.VersionNumber;
+            var revitVersion = application.VersionNumber;
             var dynamoRevitRoot = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
             var RevitRoot = Path.GetDirectoryName(application.GetType().Assembly.Location);
             if (dynamoRevitRoot.StartsWith(RevitRoot))
@@ -410,16 +311,16 @@ namespace Dynamo.Applications
                     if (version_DynamoCore.FileMajorPart == version_DynamoInstallDetective.FileMajorPart &&
                         version_DynamoCore.FileMinorPart == version_DynamoInstallDetective.FileMinorPart &&
                         version_DynamoCore.FileBuildPart == version_DynamoInstallDetective.FileBuildPart
-                       )
-                       return true;
+                        )
+                        return true;
                 }
             }
             return false;
         }
 
-        private bool TryResolveDynamoCore(UIControlledApplication application)
+        private bool TryResolveDynamoCore(ControlledApplication application)
         {
-            if(IsRevitInternalAddin(application))
+            if (IsRevitInternalAddin(application))
             {
                 dynamopath = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
             }
@@ -428,15 +329,6 @@ namespace Dynamo.Applications
                 var fvi = FileVersionInfo.GetVersionInfo(assemblyName);
                 var shortversion = fvi.FileMajorPart + "." + fvi.FileMinorPart;
 
-                if (MessageBoxResult.OK ==
-                    System.Windows.MessageBox.Show(
-                        string.Format(Resources.DynamoCoreNotFoundDialogMessage, shortversion),
-                        Resources.DynamoCoreNotFoundDialogTitle,
-                        MessageBoxButton.OKCancel,
-                        MessageBoxImage.Error))
-                {
-                    System.Diagnostics.Process.Start("http://dynamobim.org/download/");
-                }
                 return false;
             }
             return true;

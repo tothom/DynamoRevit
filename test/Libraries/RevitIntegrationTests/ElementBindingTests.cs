@@ -34,7 +34,7 @@ namespace RevitSystemTests
         private static IList<Autodesk.Revit.DB.ModelCurve> GetAllModelCurves()
         {
             ElementClassFilter ef = new ElementClassFilter(typeof(Autodesk.Revit.DB.CurveElement));
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.WherePasses(ef);
                
             return fec.ToElements().OfType<Autodesk.Revit.DB.ModelCurve>().ToList();            
@@ -48,7 +48,7 @@ namespace RevitSystemTests
         private static IList<Element> GetAllReferencePointElements()
         {            
             ElementClassFilter ef = new ElementClassFilter(typeof(ReferencePoint));
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.WherePasses(ef);
             return fec.ToElements();
         }
@@ -61,7 +61,7 @@ namespace RevitSystemTests
         private static IList<Element> GetAllWallElements()
         {
             ElementClassFilter ef = new ElementClassFilter(typeof(Wall));
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.WherePasses(ef);
             return fec.ToElements();
         }
@@ -117,7 +117,7 @@ namespace RevitSystemTests
         /// <returns>the list of walls</returns>
         private IList<Wall> GetAllWalls()
         {
-            var fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(Wall));
             return fec.ToElements().Cast<Wall>().ToList();
         }
@@ -136,7 +136,7 @@ namespace RevitSystemTests
             
 
             //Modify the wall in Revit
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document, "ModifyInRevit"))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument, "ModifyInRevit"))
             {
                 bool hasError = false;
                 trans.Start();
@@ -202,7 +202,7 @@ namespace RevitSystemTests
             wallElementIdPresave = GetBindingElementIdForNode(node.GUID);
 
             // Get initial wall count
-            var doc = DocumentManager.Instance.CurrentUIDocument.Document;
+            var doc = DocumentManager.Instance.CurrentDBDocument;
             IEnumerable<Element> wallsPresave = Utils.AllElementsOfType<Wall>(doc);
             wallElementCountPresave = wallsPresave.Count();
 
@@ -229,7 +229,7 @@ namespace RevitSystemTests
             wallElementIdPostsave = GetBindingElementIdForNode(node.GUID);
 
             // Get wall count upon reopening to verify no duplicate walls exist
-            doc = DocumentManager.Instance.CurrentUIDocument.Document;
+            doc = DocumentManager.Instance.CurrentDBDocument;
             IEnumerable<Element> wallsPostsave = Utils.AllElementsOfType<Wall>(doc);
             wallElementCountPostsave = wallsPostsave.Count();
 
@@ -260,7 +260,7 @@ namespace RevitSystemTests
             Assert.AreEqual(1, points.Count);
             ReferencePoint pnt = points[0] as ReferencePoint;
             Assert.IsNotNull(pnt);
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document, "ModifyInRevit"))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument, "ModifyInRevit"))
             {
                 trans.Start();
                 pnt.Position = new XYZ(10.0, 0.0, 0.0);
@@ -362,7 +362,7 @@ namespace RevitSystemTests
             var id1 = GetBindingElementIdForNode(node.GUID);
 
             //Delete all reference points in Revit
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document, "DeleteInRevit"))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument, "DeleteInRevit"))
             {
                 trans.Start();
 
@@ -455,11 +455,11 @@ namespace RevitSystemTests
             //Create a reference point in Revit
             string rpID;
             ReferencePoint rp;
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document, "CreateInRevit"))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument, "CreateInRevit"))
             {
                 trans.Start();
 
-                rp = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ());
+                rp = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ());
                 rpID = rp.UniqueId;
 
                 trans.Commit();
@@ -494,13 +494,13 @@ namespace RevitSystemTests
             //Create two reference points in Revit
             string rpID1, rpID2;
             ReferencePoint rp1, rp2;
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document, "CreateInRevit"))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument, "CreateInRevit"))
             {
                 trans.Start();
 
-                rp1 = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ());
+                rp1 = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ());
                 rpID1 = rp1.UniqueId;
-                rp2 = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ(10, 0, 0));
+                rp2 = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ(10, 0, 0));
                 rpID2 = rp2.UniqueId;
 
                 trans.Commit();

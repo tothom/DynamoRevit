@@ -182,6 +182,10 @@
     <Compile Include="ViewTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="$(SolutionDir)Libraries\RevitServicesUI\RevitServicesUI.csproj">
+      <Project>{35879a4a-ade4-4bbc-a79e-5e3b6f145c1e}</Project>
+      <Name>RevitServicesUI</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RevitTestServices\RevitTestServices.csproj">
       <Project>{589f14d7-2937-479c-834a-d44197cb1930}</Project>
       <Name>RevitTestServices</Name>

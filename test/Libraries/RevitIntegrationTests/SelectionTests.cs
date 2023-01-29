@@ -47,7 +47,7 @@ namespace RevitSystemTests
 
             //assert that we have the right number of family symbols
             //in the node's items source
-            var fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(Family));
             int count = fec.ToElements().Cast<Family>().Sum(f => f.GetFamilySymbolIds().Count());
 
@@ -77,11 +77,11 @@ namespace RevitSystemTests
 
             // Create a reference point in Revit
             Autodesk.Revit.DB.ReferencePoint p1;
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument))
             {
                 trans.Start("Create reference point for testing.");
 
-                p1 = DocumentManager.Instance.CurrentUIDocument.Document.FamilyCreate.NewReferencePoint(new XYZ(0, 0, 0));
+                p1 = DocumentManager.Instance.CurrentDBDocument.FamilyCreate.NewReferencePoint(new XYZ(0, 0, 0));
 
 
                 trans.Commit();
@@ -94,7 +94,7 @@ namespace RevitSystemTests
             Assert.AreEqual(0, watchNode.CachedValue);
 
             // Update the reference point position in Revit
-            using (var trans = new Transaction(DocumentManager.Instance.CurrentUIDocument.Document))
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument))
             {
                 trans.Start("Updating reference point for testing.");
 

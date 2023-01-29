@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Autodesk.Revit.DB;
 using Dynamo.Controls;
 using Dynamo.Nodes;
-using Dynamo.Wpf;
-using Dynamo.Wpf.Nodes;
 using Dynamo.Applications.Models;
 using CoreNodeModelsWpf.Nodes;
 
@@ -18,6 +13,7 @@ namespace Dynamo.Wpf.Nodes.Revit
     // we should consider extending the NodeViewCustomizationLibrary for cases like this, but this
     // is likely a non-trivial operation.
 
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     public class ElementSelectionNodeViewCustomization :
         SelectionBaseNodeViewCustomization<Element, Element>,
         INodeViewCustomization<ElementSelection<Element>>
@@ -29,6 +25,7 @@ namespace Dynamo.Wpf.Nodes.Revit
         }
     }
 
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     public class DSDividedSurfaceFamiliesSelectionNodeViewCustomization :
         SelectionBaseNodeViewCustomization<DividedSurface, Element>,
         INodeViewCustomization<ElementSelection<DividedSurface>>
@@ -40,6 +37,7 @@ namespace Dynamo.Wpf.Nodes.Revit
         }
     }
 
+    [Obsolete("This class will be removed, please use the class in RevitNodesWPF")]
     public class ReferenceSelectionNodeViewCustomization :
         SelectionBaseNodeViewCustomization<Reference, Reference>,
         INodeViewCustomization<ReferenceSelection>

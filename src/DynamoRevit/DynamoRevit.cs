@@ -32,12 +32,12 @@ using DynamoInstallDetective;
 using Greg.AuthProviders;
 using Microsoft.Win32;
 using Newtonsoft.Json;
-using RevitServices.Persistence;
-using RevitServices.Threading;
 using RevitServices.Transactions;
 using DynUpdateManager = Dynamo.Updates.UpdateManager;
 using MessageBox = System.Windows.Forms.MessageBox;
 using Resources = Dynamo.Applications.Properties.Resources;
+using RevitServicesUI.Threading;
+using RevitServicesUI.Persistence;
 
 namespace RevitServices.Threading
 {
@@ -695,8 +695,8 @@ namespace Dynamo.Applications
 
         private static void InitializeDocumentManager(DynamoRevitCommandData commandData)
         {
-            if (DocumentManager.Instance.CurrentUIApplication == null)
-                DocumentManager.Instance.CurrentUIApplication = commandData.Application;
+            if (UIDocumentManager.Instance.CurrentUIApplication == null)
+                UIDocumentManager.Instance.CurrentUIApplication = commandData.Application;
         }
 
         #endregion

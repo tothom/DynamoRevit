@@ -29,6 +29,7 @@ using CoreNodeModels;
 using Dynamo.Graph.Nodes;
 using Dynamo.Graph.Nodes.ZeroTouch;
 using Revit.Elements.InternalUtilities;
+using RevitServicesUI.Persistence;
 
 namespace RevitSystemTests
 {
@@ -674,7 +675,7 @@ namespace RevitSystemTests
 
             //Create 4 curve elements in Revit
             List<Autodesk.Revit.DB.Element> curves = new List<Autodesk.Revit.DB.Element>();
-            var document = DocumentManager.Instance.CurrentUIDocument.Document;
+            var document = DocumentManager.Instance.CurrentDBDocument;
             Autodesk.Revit.DB.Plane plane;
             Autodesk.Revit.DB.SketchPlane sp;
             using (var trans = new Autodesk.Revit.DB.Transaction(document, "CreateModelCurvesInRevit"))
@@ -755,7 +756,7 @@ namespace RevitSystemTests
             Assert.IsTrue(node.CanSelect);
 
             string newRfaFilePath = Path.Combine(workingDirectory, "modelLines.rfa");
-            DocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(newRfaFilePath);
+            UIDocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(newRfaFilePath);
             node = AllNodes.OfType<DSModelElementSelection>().ElementAt(0);
             Assert.IsFalse(node.CanSelect);
         }
@@ -837,7 +838,7 @@ namespace RevitSystemTests
             ViewModel.OpenCommand.Execute(testPath);
 
             var doc = DocumentManager.Instance.CurrentDBDocument;
-            var fec = new Autodesk.Revit.DB.FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var fec = new Autodesk.Revit.DB.FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(Autodesk.Revit.DB.ReferencePoint));
             Assert.AreEqual(4, fec.ToElements().Count());
 
@@ -1101,7 +1102,7 @@ namespace RevitSystemTests
             var curve = GetPreviewValue(nodeID) as ModelCurve;
             Assert.IsNotNull(curve);
 
-            var settings = DocumentManager.Instance.CurrentUIDocument.ActiveView.
+            var settings = DocumentManager.Instance.CurrentDBDocument.ActiveView.
                 GetElementOverrides(curve.InternalElement.Id);
             Assert.AreEqual(255, settings.ProjectionLineColor.Red);
         }
@@ -1147,7 +1148,7 @@ namespace RevitSystemTests
             RunCurrentModel();
 
             // Now check the overriden color of element with ID of 2320 to be (0, 0, 255)
-            var settings = DocumentManager.Instance.CurrentUIDocument.ActiveView.
+            var settings = DocumentManager.Instance.CurrentDBDocument.ActiveView.
                 GetElementOverrides(ElementSelector.
                 ByUniqueId("350f68bb-624c-405f-b93f-f7e6ff82778b-00000910").InternalElement.Id);
             Assert.AreEqual(0, settings.ProjectionLineColor.Red);
@@ -1157,14 +1158,14 @@ namespace RevitSystemTests
 
         protected static IList<Autodesk.Revit.DB.CurveElement> GetAllCurveElements()
         {
-            var fec = new Autodesk.Revit.DB.FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var fec = new Autodesk.Revit.DB.FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(Autodesk.Revit.DB.CurveElement));
             return fec.ToElements().Cast<Autodesk.Revit.DB.CurveElement>().ToList();
         }
 
         protected static IList<Autodesk.Revit.DB.ReferencePoint> GetAllReferencePoints()
         {
-            var fec = new Autodesk.Revit.DB.FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var fec = new Autodesk.Revit.DB.FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(Autodesk.Revit.DB.ReferencePoint));
             return fec.ToElements().Cast<Autodesk.Revit.DB.ReferencePoint>().ToList();
         }

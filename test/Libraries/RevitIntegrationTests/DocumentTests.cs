@@ -5,7 +5,7 @@ using System.Linq;
 using NUnit.Framework;
 
 using RevitServices.Persistence;
-
+using RevitServicesUI.Persistence;
 using RevitTestServices;
 
 using RTF.Framework;
@@ -19,7 +19,7 @@ namespace RevitSystemTests
         [TestModel(@"./empty.rfa")]
         public void InitialUIDocumentIsNotNull()
         {
-            Assert.IsNotNull(DocumentManager.Instance.CurrentUIDocument);
+            Assert.IsNotNull(UIDocumentManager.Instance.CurrentUIDocument);
         }
 
         [Test]
@@ -27,13 +27,13 @@ namespace RevitSystemTests
         public void OpeningNewDocumentDoesNotSwitchUIDocument()
         {
             // a reference to the initial document
-            var initialDoc = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
+            var initialDoc = UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
 
             var newDoc = OpenAndActivateNewModel(emptyModelPath1);
 
             // Assert that the active UI document is
             // still the initial document
-            Assert.AreEqual(DocumentManager.Instance.CurrentUIDocument.Document.PathName, initialDoc.Document.PathName);
+            Assert.AreEqual(DocumentManager.Instance.CurrentDBDocument.PathName, initialDoc.Document.PathName);
         }
 
         [Test]
@@ -42,7 +42,7 @@ namespace RevitSystemTests
         {
             // empty.rfa will be open at test start
             // swap documents and ensure that 
-            var initialDoc = DocumentManager.Instance.CurrentUIDocument;
+            var initialDoc = UIDocumentManager.Instance.CurrentUIDocument;
             var newDoc = OpenAndActivateNewModel(emptyModelPath1);
 
             Assert.False(ViewModel.HomeSpace.RunSettings.RunEnabled);

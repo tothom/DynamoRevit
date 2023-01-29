@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -9,9 +10,11 @@ using Dynamo.Interfaces;
 using Dynamo.Logging;
 
 using RevitServices.Persistence;
+using RevitServicesUI.Persistence;
 
 namespace Revit.Interactivity
 {
+    [Obsolete("This class will be removed, please use the event in RevitNodesWPF")]
     internal class RevitReferenceSelectionHelper : LogSourceBase, IModelSelectionHelper<Reference>
     {
         private static readonly RevitReferenceSelectionHelper instance =
@@ -42,7 +45,7 @@ namespace Revit.Interactivity
         private static IEnumerable<Reference> RequestReferenceSelection(
             string message, ILogger logger, SelectionObjectType selectionType)
         {
-            var doc = DocumentManager.Instance.CurrentUIDocument;
+            var doc = UIDocumentManager.Instance.CurrentUIDocument;
 
             Reference reference = null;
 
@@ -74,7 +77,7 @@ namespace Revit.Interactivity
         private static IEnumerable<Reference> RequestMultipleReferencesSelection(
             string message, ILogger logger, SelectionObjectType selectionType)
         {
-            var doc = DocumentManager.Instance.CurrentUIDocument;
+            var doc = UIDocumentManager.Instance.CurrentUIDocument;
 
             IList<Reference> references = null;
 
@@ -107,6 +110,7 @@ namespace Revit.Interactivity
         #endregion
     }
 
+    [Obsolete("This class will be removed, please use the event in RevitNodesWPF")]
     internal class RevitElementSelectionHelper<T> : LogSourceBase, IModelSelectionHelper<T> where T : Element
     {
         private static readonly RevitElementSelectionHelper<T> instance = new RevitElementSelectionHelper<T>();
@@ -176,7 +180,7 @@ namespace Revit.Interactivity
 
         private static IEnumerable<T> RequestElementSelection(string selectionMessage, ILogger logger)
         {
-            var doc = DocumentManager.Instance.CurrentUIDocument;
+            var doc = UIDocumentManager.Instance.CurrentUIDocument;
 
             Element e = null;
 
@@ -201,7 +205,7 @@ namespace Revit.Interactivity
         private static IEnumerable<T> RequestMultipleElementsSelection(
             string selectionMessage, ILogger logger)
         {
-            var doc = DocumentManager.Instance.CurrentUIDocument;
+            var doc = UIDocumentManager.Instance.CurrentUIDocument;
 
             var choices = doc.Selection;
             choices.SetElementIds(new Collection<ElementId>());
@@ -218,6 +222,7 @@ namespace Revit.Interactivity
         #endregion
     }
 
+    [Obsolete("This class will be removed, please use the event in RevitNodesWPF")]
     internal class ElementSelectionFilter<T> : ISelectionFilter
     {
         public bool AllowElement(Element elem)
@@ -231,6 +236,7 @@ namespace Revit.Interactivity
         }
     }
 
+    [Obsolete("This class will be removed, please use the event in RevitNodesWPF")]
     internal class ReferenceSelectionFilter : ISelectionFilter
     {
         public bool AllowElement(Element elem)

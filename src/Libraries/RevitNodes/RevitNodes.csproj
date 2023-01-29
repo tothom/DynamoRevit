@@ -50,10 +50,6 @@
       <HintPath>$(REVITAPI)\RevitAPI.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="RevitAPIUI">
-      <HintPath>$(REVITAPI)\RevitAPIUI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="ProtoGeometry">
       <HintPath>$(PACKAGESPATH)\DynamoVisualProgramming.ZeroTouchLibrary\lib\net48\ProtoGeometry.dll</HintPath>
       <Private>False</Private>
@@ -239,11 +235,6 @@
       <HintPath>$(PACKAGESPATH)\DynamoVisualProgramming.ZeroTouchLibrary\lib\net48\DynamoUnits.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <ProjectReference Include="..\RevitServices\RevitServices.csproj">
-      <Project>{E4701F9E-41AB-4044-8166-85D924FEB632}</Project>
-      <Name>RevitServices</Name>
-      <Private>False</Private>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="RevitNodes_DynamoCustomization.xml" />

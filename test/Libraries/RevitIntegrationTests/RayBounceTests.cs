@@ -28,7 +28,7 @@ namespace RevitSystemTests
             RunCurrentModel();
 
             //ensure that the bounce curve count is the same
-            var curveColl = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document, DocumentManager.Instance.CurrentUIDocument.ActiveView.Id);
+            var curveColl = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument, DocumentManager.Instance.CurrentDBDocument.ActiveView.Id);
             curveColl.OfClass(typeof(CurveElement));
             Assert.AreEqual(curveColl.ToElements().Count(), 33);
         }

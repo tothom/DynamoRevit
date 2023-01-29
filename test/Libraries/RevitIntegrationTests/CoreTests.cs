@@ -19,7 +19,7 @@ using NUnit.Framework;
 
 using RevitServices.Persistence;
 using RevitServices.Transactions;
-
+using RevitServicesUI.Persistence;
 using RevitTestServices;
 
 using RTF.Framework;
@@ -110,12 +110,12 @@ namespace RevitSystemTests
             Assert.AreEqual(1, fec.ToElements().Count());
 
             //open a new document and activate it
-            var initialDoc = (UIDocument)DocumentManager.Instance.CurrentUIDocument;
+            var initialDoc = DocumentManager.Instance.CurrentDBDocument;
             string shellPath = Path.Combine(workingDirectory, @".\empty1.rfa");
             TransactionManager.Instance.ForceCloseTransaction();
-            DocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(shellPath);
+            UIDocumentManager.Instance.CurrentUIApplication.OpenAndActivateDocument(shellPath);
 
-            initialDoc.Document.Close(false);
+            initialDoc.Close(false);
 
             ////assert that the doc is set on the DocumentManager
             Assert.IsNotNull((Document)DocumentManager.Instance.CurrentDBDocument);

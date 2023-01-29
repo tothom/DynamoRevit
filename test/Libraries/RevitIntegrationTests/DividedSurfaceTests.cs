@@ -40,7 +40,7 @@ namespace RevitSystemTests
              var dividedSurface = GetPreviewValueAtIndex(dividedSurfaceID, 0) as Revit.Elements.DividedSurface;
             Assert.IsNotNull(dividedSurface);
 
-            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            FilteredElementCollector fec = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             fec.OfClass(typeof(Autodesk.Revit.DB.DividedSurface));
 
             //did it create a divided surface?

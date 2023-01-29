@@ -70,6 +70,10 @@
     <Compile Include="RevitTestPathResolver.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="$(SolutionDir)Libraries\RevitServicesUI\RevitServicesUI.csproj">
+      <Project>{35879a4a-ade4-4bbc-a79e-5e3b6f145c1e}</Project>
+      <Name>RevitServicesUI</Name>
+    </ProjectReference>
     <Reference Include="DynamoCore">
       <HintPath>$(PACKAGESPATH)\DynamoVisualProgramming.Core\lib\net48\DynamoCore.dll</HintPath>
       <Private>False</Private>

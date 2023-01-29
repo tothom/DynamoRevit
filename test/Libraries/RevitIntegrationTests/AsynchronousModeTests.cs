@@ -56,7 +56,7 @@ namespace RevitSystemTests
             AsyncRunCurrentModel();
 
             //ensure that the level count is 3
-            var levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentUIDocument.Document);
+            var levelColl = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument);
             levelColl.OfClass(typeof(Autodesk.Revit.DB.Level));
             Assert.AreEqual(levelColl.ToElements().Count(), 3);
         }

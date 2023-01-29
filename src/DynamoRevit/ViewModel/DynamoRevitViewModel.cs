@@ -9,6 +9,7 @@ using Dynamo.Visualization;
 using Dynamo.Wpf.ViewModels.Core;
 using Dynamo.Wpf.ViewModels.Watch3D;
 using RevitServices.Persistence;
+using RevitServicesUI.Persistence;
 
 namespace Dynamo.Applications.ViewModel
 {
@@ -108,7 +109,7 @@ namespace Dynamo.Applications.ViewModel
 
         private static string GetDocumentPointerMessage()
         {
-            var docPath = DocumentManager.Instance.CurrentUIDocument.Document.PathName;
+            var docPath = DocumentManager.Instance.CurrentDBDocument.PathName;
             var message = String.IsNullOrEmpty(docPath)
                 ? Resources.NewDocument
                 : Resources.Document + ": " + docPath;

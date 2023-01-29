@@ -28,6 +28,7 @@ using RevitServices.Materials;
 using RevitServices.Persistence;
 using RevitServices.Threading;
 using RevitServices.Transactions;
+using RevitServicesUI.Persistence;
 using Category = Revit.Elements.Category;
 using Element = Autodesk.Revit.DB.Element;
 using View = Autodesk.Revit.DB.View;
@@ -149,10 +150,9 @@ namespace Dynamo.Applications.Models
                 node.PropertyChanged += node_PropertyChanged;
             }
 
-            var dm = DocumentManager.Instance;
-            if (dm.CurrentDBDocument != null)
+            if (DocumentManager.Instance.CurrentDBDocument != null)
             {
-                SetRunEnabledBasedOnContext(dm.CurrentUIDocument.ActiveView);
+                SetRunEnabledBasedOnContext(DocumentManager.Instance.CurrentDBDocument.ActiveView);
             }
         }
 
@@ -174,7 +174,7 @@ namespace Dynamo.Applications.Models
             get
             {
                 return base.AppVersion +
-                    "-R" + DocumentManager.Instance.CurrentUIApplication.Application.VersionBuild;
+                    "-R" + DocumentManager.Instance.CurrentApplication.VersionBuild;
             }
         }
 
@@ -190,7 +190,7 @@ namespace Dynamo.Applications.Models
                     return false; // There's no current document stored.
 
                 // Selection is not allowed in perspective view mode.
-                var view3D = dm.CurrentUIDocument.ActiveView as View3D;
+                var view3D = DocumentManager.Instance.CurrentDBDocument.ActiveView as View3D;
                 if ((view3D != null) && view3D.IsPerspective)
                     return false; // There's no view, or in perspective view.
 
@@ -498,10 +498,10 @@ namespace Dynamo.Applications.Models
         private void InitializeDocumentManager()
         {
             // Set the intitial document.
-            var activeUIDocument = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
+            var activeUIDocument = UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
             if (activeUIDocument != null)
             {
-                DocumentManager.Instance.CurrentUIDocument = activeUIDocument;
+                UIDocumentManager.Instance.CurrentUIDocument = activeUIDocument;
                 DocumentManager.Instance.HandleDocumentActivation(activeUIDocument.ActiveView);
 
                 OnRevitDocumentChanged();
@@ -560,8 +560,8 @@ namespace Dynamo.Applications.Models
                 return;
             }
 
-            DynamoRevitApp.EventHandlerProxy.ViewActivating += OnApplicationViewActivating;
-            DynamoRevitApp.EventHandlerProxy.ViewActivated += OnApplicationViewActivated;
+            DynamoRevitApp.UIEventHandlerProxy.ViewActivating += OnApplicationViewActivating;
+            DynamoRevitApp.UIEventHandlerProxy.ViewActivated += OnApplicationViewActivated;
             DynamoRevitApp.EventHandlerProxy.DocumentClosing += OnApplicationDocumentClosing;
             DynamoRevitApp.EventHandlerProxy.DocumentClosed += OnApplicationDocumentClosed;
             DynamoRevitApp.EventHandlerProxy.DocumentOpened += OnApplicationDocumentOpened;
@@ -576,8 +576,8 @@ namespace Dynamo.Applications.Models
                 return;
             }
 
-            DynamoRevitApp.EventHandlerProxy.ViewActivating -= OnApplicationViewActivating;
-            DynamoRevitApp.EventHandlerProxy.ViewActivated -= OnApplicationViewActivated;
+            DynamoRevitApp.UIEventHandlerProxy.ViewActivating -= OnApplicationViewActivating;
+            DynamoRevitApp.UIEventHandlerProxy.ViewActivated -= OnApplicationViewActivated;
             DynamoRevitApp.EventHandlerProxy.DocumentClosing -= OnApplicationDocumentClosing;
             DynamoRevitApp.EventHandlerProxy.DocumentClosed -= OnApplicationDocumentClosed;
             DynamoRevitApp.EventHandlerProxy.DocumentOpened -= OnApplicationDocumentOpened;
@@ -672,7 +672,6 @@ namespace Dynamo.Applications.Models
 
         private static void ShutdownRevitHostOnce()
         {
-            var uiApplication = DocumentManager.Instance.CurrentUIApplication;
             ShutdownRevitHost();
         }
 
@@ -700,7 +699,7 @@ namespace Dynamo.Applications.Models
             base.PostShutdownCore(shutdownHost);
             
             // Always reset current UI document on shutdown
-            DocumentManager.Instance.CurrentUIDocument = null;
+            UIDocumentManager.Instance.CurrentUIDocument = null;
         }
 
         /// <summary>
@@ -787,7 +786,7 @@ namespace Dynamo.Applications.Models
                 // If there is a current document, then set the run enabled
                 // state based on whether the view just activated is 
                 // the same document.
-                if (DocumentManager.Instance.CurrentUIDocument != null)
+                if (UIDocumentManager.Instance.CurrentUIDocument != null)
                 {
                     var newEnabled = newView != null &&
                         newView.Document.Equals(DocumentManager.Instance.CurrentDBDocument);
@@ -820,11 +819,11 @@ namespace Dynamo.Applications.Models
             // If the current document is null, for instance if there are
             // no documents open, then set the current document, and 
             // present a message telling us where Dynamo is pointing.
-            if (DocumentManager.Instance.CurrentUIDocument == null)
+            if (UIDocumentManager.Instance.CurrentUIDocument == null)
             {
-                var activeUIDocument = DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
+                var activeUIDocument = UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
 
-                DocumentManager.Instance.CurrentUIDocument = activeUIDocument;
+                UIDocumentManager.Instance.CurrentUIDocument = activeUIDocument;
                 if (activeUIDocument != null)
                     DocumentManager.Instance.HandleDocumentActivation(activeUIDocument.ActiveView);
 
@@ -861,9 +860,9 @@ namespace Dynamo.Applications.Models
             // If the active UI document is null, it means that all views have been 
             // closed from all document. Clear our reference, present a warning,
             // and disable running.
-            if (DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument == null)
+            if (UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument == null)
             {
-                DocumentManager.Instance.CurrentUIDocument = null;
+                UIDocumentManager.Instance.CurrentUIDocument = null;
                 foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
                 {
                     ws.RunSettings.RunEnabled = false;
@@ -878,14 +877,14 @@ namespace Dynamo.Applications.Models
                 if (updateCurrentUIDoc)
                 {
                     updateCurrentUIDoc = false;
-                    DocumentManager.Instance.CurrentUIDocument =
-                        DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
+                    UIDocumentManager.Instance.CurrentUIDocument =
+                        UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
 
                     OnRevitDocumentChanged();
                 }
             }
 
-            var uiDoc = DocumentManager.Instance.CurrentUIDocument;
+            var uiDoc = DocumentManager.Instance.CurrentDBDocument;
             if (uiDoc != null)
             {
                 SetRunEnabledBasedOnContext(uiDoc.ActiveView);
@@ -901,10 +900,10 @@ namespace Dynamo.Applications.Models
         {
             // If there is no active document, then set it to whatever
             // document has just been activated
-            if (DocumentManager.Instance.CurrentUIDocument == null)
+            if (UIDocumentManager.Instance.CurrentUIDocument == null)
             {
-                DocumentManager.Instance.CurrentUIDocument =
-                    DocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
+                UIDocumentManager.Instance.CurrentUIDocument =
+                    UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
 
                 OnRevitDocumentChanged();
 
@@ -933,7 +932,7 @@ namespace Dynamo.Applications.Models
         {
             // this method cannot be called without Revit 2014
             var exitCommand = RevitCommandId.LookupPostableCommandId(PostableCommand.ExitRevit);
-            var uiApplication = DocumentManager.Instance.CurrentUIApplication;
+            var uiApplication = UIDocumentManager.Instance.CurrentUIApplication;
 
             if ((uiApplication != null) && uiApplication.CanPostCommand(exitCommand))
                 uiApplication.PostCommand(exitCommand);
