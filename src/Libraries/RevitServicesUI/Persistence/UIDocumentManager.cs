@@ -21,6 +21,8 @@ namespace RevitServicesUI.Persistence
         private static DocumentManager dbInstance;
         private static readonly Object mutex = new Object();
 
+        internal bool IsHeadless { get; private set; } = false;
+
         public static UIDocumentManager Instance
         {
             get
@@ -68,6 +70,36 @@ namespace RevitServicesUI.Persistence
                 currentUIApplication = value;
                 dbInstance.CurrentApplication = currentUIApplication?.Application;
             }
+        }
+
+        public bool IsViewSafeToDelete(ElementId vId)
+        {
+            if(IsHeadless)
+            {
+                return true;
+            }
+
+            if (CurrentUIDocument == null)
+            {
+                return false;
+            }
+
+            var openedViews = CurrentUIDocument.GetOpenUIViews().ToList();
+            var shouldClosedViews = openedViews.FindAll(x => vId == x.ViewId);
+            foreach (var v in shouldClosedViews)
+            {
+                if (CurrentUIDocument.GetOpenUIViews().Count() > 1)
+                    v.Close();
+                else
+                    return false;
+            }
+
+            return true;
+        }
+
+        public void RefreshActiveView()
+        {
+            CurrentUIDocument?.RefreshActiveView();
         }
     }
 }
