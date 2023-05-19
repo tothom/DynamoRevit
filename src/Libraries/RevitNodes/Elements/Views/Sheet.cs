@@ -775,17 +775,11 @@ namespace Revit.Elements.Views
                     }
                     if(newSheet == null)
                     {
-                        Autodesk.Revit.UI.UIDocument uIDocument = new Autodesk.Revit.UI.UIDocument(Document);
-                        var openedViews = uIDocument.GetOpenUIViews().ToList();
-                        var shouldClosedViews = openedViews.FindAll(x => elementIds.Contains(x.ViewId));
-                        if (shouldClosedViews.Count > 0)
+                        foreach (var id in elementIds)
                         {
-                            foreach (var v in shouldClosedViews)
+                            if (!RevitServicesUI.Persistence.UIDocumentManager.Instance.IsViewSafeToDelete(id))
                             {
-                                if (uIDocument.GetOpenUIViews().ToList().Count() > 1)
-                                    v.Close();
-                                else
-                                    throw new InvalidOperationException(string.Format(Properties.Resources.CantCloseLastOpenView, v.ToString()));
+                                throw new InvalidOperationException(string.Format(Properties.Resources.CantCloseLastOpenView, id.ToString()));
                             }
                         }
                         Document.Delete(elementIds);
