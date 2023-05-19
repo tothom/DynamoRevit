@@ -222,6 +222,6 @@ test/Libraries/RevitIntegrationTests/RevitTestConfiguration.xml
 test/**/*.txt
 test/**/*.addin
 test/SystemInJson
-
+test/
 # Icon resources
 /src/DynamoRevitIcons/*.resources

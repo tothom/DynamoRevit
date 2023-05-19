@@ -2,11 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Autodesk.Revit;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
@@ -17,9 +13,9 @@ using RevitServices.Transactions;
 
 namespace DynamoRevitHeadless
 {
-    [Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual),
+    [Transaction(TransactionMode.Manual),
         Regeneration(RegenerationOption.Manual)]
-    public class DynamoRevitDBApp : Autodesk.Revit.DB.IExternalDBApplication
+    public class DynamoRevitDBApp : IExternalDBApplication
     {
         private static readonly string assemblyName = Assembly.GetExecutingAssembly().Location;
         public static ControlledApplication ControlledApplication;
@@ -130,7 +126,7 @@ namespace DynamoRevitHeadless
 
                 RegisterAdditionalUpdaters(application);
 
-                RevitServicesUpdater.Initialize(DynamoRevitDBApp.Updaters);
+                RevitServicesUpdater.Initialize(Updaters);
                 SubscribeDocumentChangedEvent();
 
                 loadDependentComponents();
@@ -161,7 +157,7 @@ namespace DynamoRevitHeadless
         {
             // If we are running in test mode, invoke 
             // the action immediately.
-            if (DynamoModel.IsTestMode)
+            if (true)//DynamoModel.IsTestMode)
             {
                 a.Invoke();
             }
@@ -253,7 +249,7 @@ namespace DynamoRevitHeadless
 
             try
             {
-                assemblyPath = Path.Combine(DynamoRevitDBApp.DynamoCorePath, assemblyName);
+                assemblyPath = Path.Combine(DynamoCorePath, assemblyName);
                 if (File.Exists(assemblyPath))
                 {
                     return Assembly.LoadFrom(assemblyPath);

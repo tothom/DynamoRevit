@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <RevitVersionNumber Condition=" '$(RevitVersionNumber)' == '' ">2024</RevitVersionNumber>
-	<REVIT_VERSION>Revit</REVIT_VERSION>
+	<REVIT_VERSION>Revit 2024</REVIT_VERSION>
 	<DYNAMOTESTAPI Condition=" '$(DYNAMOTESTAPI)' == '' ">$(SolutionDir)..\bin\$(Platform)\$(Configuration)</DYNAMOTESTAPI>
 	<OutputPath Condition=" '$(OutputPath)' == '' ">$(SolutionDir)..\bin\AnyCPU\$(Configuration)\$(REVIT_VERSION)</OutputPath>
 	<TestOutputPath Condition=" '$(TestOutputPath)' == '' ">$(OutputPath)</TestOutputPath>
