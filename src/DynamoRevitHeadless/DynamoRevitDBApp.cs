@@ -83,6 +83,7 @@ namespace DynamoRevitHeadless
 
         private ExternalDBApplicationResult loadDependentComponents()
         {
+            //(Dimitar) I can't find this assembly anywhere. Is it still relevant?
             var dynamoRevitAditionsPath = Path.Combine(Path.GetDirectoryName(assemblyName), "DynamoRevitAdditions.dll");
             if (File.Exists(dynamoRevitAditionsPath))
             {
@@ -113,7 +114,7 @@ namespace DynamoRevitHeadless
         {
             try
             {
-                if (false == TryResolveDynamoCore(application))
+                if (!TryResolveDynamoCore(application))
                     return ExternalDBApplicationResult.Failed;
 
                 ControlledApplication = application;
@@ -129,7 +130,7 @@ namespace DynamoRevitHeadless
                 RevitServicesUpdater.Initialize(Updaters);
                 SubscribeDocumentChangedEvent();
 
-                loadDependentComponents();
+                _ = loadDependentComponents(); //(Dimitar) should we fail to load here if the internal method returns Failed?
 
                 return ExternalDBApplicationResult.Succeeded;
             }
@@ -155,6 +156,7 @@ namespace DynamoRevitHeadless
         /// <param name="a"></param>
         public static void AddIdleAction(Action a)
         {
+            return; //(Dimitar) seems these actions are only neccesarry for the interactive version of Dynamo
             // If we are running in test mode, invoke 
             // the action immediately.
             if (true)//DynamoModel.IsTestMode)

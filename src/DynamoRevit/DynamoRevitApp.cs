@@ -1,16 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Resources;
 using System.Windows;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
@@ -29,7 +23,7 @@ namespace Dynamo.Applications
 {
 
 
-    [Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual),
+    [Transaction(TransactionMode.Manual),
      Regeneration(RegenerationOption.Manual)]
     public class DynamoRevitApp : IExternalApplication
     {
@@ -102,6 +96,7 @@ namespace Dynamo.Applications
 
         private Result loadDependentComponents()
         {
+            //(Dimitar) what does this assembly do? Why do we need to load it?
             var dynamoRevitAditionsPath = Path.Combine(Path.GetDirectoryName(assemblyName), "DynamoRevitAdditions.dll");
             if (File.Exists(dynamoRevitAditionsPath))
             {
@@ -153,7 +148,7 @@ namespace Dynamo.Applications
             
                 RegisterAdditionalUpdaters(application);
 
-                RevitServicesUpdater.Initialize(DynamoRevitApp.Updaters);
+                RevitServicesUpdater.Initialize(Updaters);
                 SubscribeDocumentChangedEvent();
 
                 loadDependentComponents();
@@ -347,7 +342,7 @@ namespace Dynamo.Applications
 
             try
             {
-                assemblyPath = Path.Combine(DynamoRevitApp.DynamoCorePath, assemblyName);
+                assemblyPath = Path.Combine(DynamoCorePath, assemblyName);
                 if(File.Exists(assemblyPath))
                 {
                     return Assembly.LoadFrom(assemblyPath);
@@ -435,7 +430,7 @@ namespace Dynamo.Applications
                         MessageBoxButton.OKCancel,
                         MessageBoxImage.Error))
                 {
-                    System.Diagnostics.Process.Start("http://dynamobim.org/download/");
+                    Process.Start("http://dynamobim.org/download/");
                 }
                 return false;
             }
