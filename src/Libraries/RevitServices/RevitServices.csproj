@@ -99,6 +99,7 @@ limitations under the License.
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RevitTraceUtils.cs" />
     <Compile Include="Threading\RevitSchedulerThread.cs" />
     <Compile Include="Transactions\TransactionManager.cs" />
   </ItemGroup>

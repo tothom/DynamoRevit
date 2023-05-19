@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Autodesk.Revit.DB;
+using DynamoServices;
 
 namespace RevitServices
 {
@@ -17,7 +18,7 @@ namespace RevitServices
         public static List<ElementId> GetElementIds()
         {
             SerializableListOfElements listOfElements = 
-                (SerializableListOfElements)DSNodeServices.TraceUtils.GetTraceData(Constants.RevitTraceID);
+                (SerializableListOfElements)TraceUtils.GetTraceData(Constants.RevitTraceID);
             return listOfElements.ElementIds;
         }
 
@@ -26,7 +27,7 @@ namespace RevitServices
             SerializableListOfElements listOfElements = 
                 new SerializableListOfElements(elementIds);
 
-            DSNodeServices.TraceUtils.SetTraceData(Constants.RevitTraceID, listOfElements);
+            TraceUtils.SetTraceData(Constants.RevitTraceID, listOfElements);
         }
 
 

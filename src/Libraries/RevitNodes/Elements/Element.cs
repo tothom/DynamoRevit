@@ -291,7 +291,7 @@ namespace Revit.Elements
             {
                 if(this.InternalElement is View && InternalElement.IsValidObject)
                 {
-                    Autodesk.Revit.UI.UIDocument uIDocument = new Autodesk.Revit.UI.UIDocument(Document);
+                    var uIDocument = RevitServicesUI.Persistence.UIDocumentManager.Instance.CurrentUIDocument;
                     var openedViews = uIDocument.GetOpenUIViews().ToList();
                     var shouldClosedViews = openedViews.FindAll(x => InternalElement.Id == x.ViewId);
                     foreach (var v in shouldClosedViews)

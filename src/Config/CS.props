@@ -6,10 +6,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
 	<VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
-	<RevitVersionNumber Condition=" '$(RevitVersionNumber)' == '' ">Preview Release</RevitVersionNumber>
+	<RevitVersionNumber Condition=" '$(RevitVersionNumber)' == '' ">2024</RevitVersionNumber>
 	<REVIT_VERSION>Revit_$(RevitVersionNumber)</REVIT_VERSION>
 	<OutputPath Condition=" '$(OutputPath)' == '' ">$(SolutionDir)..\bin\$(Platform)\$(Configuration)\$(REVIT_VERSION)</OutputPath>
-    <PACKAGESPATH>$(SolutionDir)packages</PACKAGESPATH>
+    <PACKAGESPATH>$(SolutionDir)packages\_packages\</PACKAGESPATH>
 	<DynamoExternPath  Condition=" '$(DynamoExternPath)' == '' ">$(SolutionDir)..\extern</DynamoExternPath>
 	<DYNAMOTESTAPI Condition=" '$(DYNAMOTESTAPI)' == '' ">C:\Program Files\Dynamo 0.7</DYNAMOTESTAPI>
 	<TestOutputPath Condition=" '$(TestOutputPath)' == '' ">$(SolutionDir)..\bin\$(Platform)\$(Configuration)\$(REVIT_VERSION)</TestOutputPath>
