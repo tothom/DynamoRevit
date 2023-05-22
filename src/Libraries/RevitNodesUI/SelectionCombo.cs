@@ -16,6 +16,7 @@ using RevitServices.Persistence;
 using Autodesk.Revit.UI.Selection;
 using Dynamo.Logging;
 using DSCore;
+using RevitServicesUI.Persistence;
 
 namespace Dynamo.ComboNodes
 {
@@ -301,7 +302,7 @@ namespace Dynamo.ComboNodes
 
         private IEnumerable<T> RequestElementSelection(string selectionMessage, ILogger logger)
         {
-            var doc = DocumentManager.Instance.CurrentUIDocument;
+            var doc = UIDocumentManager.Instance.CurrentUIDocument;
 
             Element e = null;
 
@@ -326,7 +327,7 @@ namespace Dynamo.ComboNodes
         private IEnumerable<T> RequestMultipleElementsSelection(
             string selectionMessage, ILogger logger)
         {
-            var doc = DocumentManager.Instance.CurrentUIDocument;
+            var doc = UIDocumentManager.Instance.CurrentUIDocument;
 
             var choices = doc.Selection;
             choices.SetElementIds(new Collection<ElementId>());
