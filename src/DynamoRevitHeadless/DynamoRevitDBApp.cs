@@ -7,9 +7,9 @@ using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using RevitServices.Elements;
-using RevitServices.EventHandler;
 using RevitServices.Persistence;
 using RevitServices.Transactions;
+using DesignAutomationFramework;
 
 namespace DynamoRevitHeadless
 {
@@ -38,6 +38,8 @@ namespace DynamoRevitHeadless
         /// <returns>The root folder path of Dynamo Core.</returns>
         private static string GetDynamoCorePath()
         {
+            return @"C:\Program Files\Autodesk\Revit 2024\AddIns\DynamoForRevit";
+
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             var dynamoRevitRootDirectory = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
             var dynamoRoot = GetDynamoRoot(dynamoRevitRootDirectory);
@@ -78,8 +80,6 @@ namespace DynamoRevitHeadless
         }
 
         private static string dynamopath;
-        private static readonly Queue<Action> idleActionQueue = new Queue<Action>(10);
-        private static EventHandlerProxy proxy;
 
         private ExternalDBApplicationResult loadDependentComponents()
         {
@@ -120,17 +120,15 @@ namespace DynamoRevitHeadless
                 ControlledApplication = application;
 
                 SubscribeAssemblyEvents();
-                SubscribeApplicationEvents();
 
                 TransactionManager.SetupManager(new AutomaticTransactionStrategy());
                 ElementBinder.IsEnabled = true;
 
-                RegisterAdditionalUpdaters(application);
-
                 RevitServicesUpdater.Initialize(Updaters);
-                SubscribeDocumentChangedEvent();
 
                 _ = loadDependentComponents(); //(Dimitar) should we fail to load here if the internal method returns Failed?
+
+                DesignAutomationBridge.DesignAutomationReadyEvent += HandleDesignAutomationReadyEvent;
 
                 return ExternalDBApplicationResult.Succeeded;
             }
@@ -143,82 +141,19 @@ namespace DynamoRevitHeadless
         public ExternalDBApplicationResult OnShutdown(ControlledApplication application)
         {
             UnsubscribeAssemblyEvents();
-            UnsubscribeApplicationEvents();
-            UnsubscribeDocumentChangedEvent();
             RevitServicesUpdater.DisposeInstance();
 
             return ExternalDBApplicationResult.Succeeded;
         }
 
-        /// <summary>
-        /// Add an action to run when the application is in the idle state
-        /// </summary>
-        /// <param name="a"></param>
-        public static void AddIdleAction(Action a)
+        public void HandleDesignAutomationReadyEvent(object sender, DesignAutomationReadyEventArgs e)
         {
-            return; //(Dimitar) seems these actions are only neccesarry for the interactive version of Dynamo
-            // If we are running in test mode, invoke 
-            // the action immediately.
-            if (true)//DynamoModel.IsTestMode)
-            {
-                a.Invoke();
-            }
-            else
-            {
-                lock (idleActionQueue)
-                {
-                    idleActionQueue.Enqueue(a);
-                }
-            }
-        }
-
-        public static EventHandlerProxy EventHandlerProxy
-        {
-            get { return proxy; }
-        }
-
-        // should be handled by the ModelUpdater class. But there are some
-        // cases where the document modifications handled there do no catch
-        // certain document interactions. Those should be registered here.
-        /// <summary>
-        ///     Register some document updaters. Generally, document updaters
-        /// </summary>
-        /// <param name="application"></param>
-        private static void RegisterAdditionalUpdaters(ControlledApplication application)
-        {
-            var sunUpdater = new SunPathUpdater(application.ActiveAddInId);
-
-            if (!UpdaterRegistry.IsUpdaterRegistered(sunUpdater.GetUpdaterId()))
-                UpdaterRegistry.RegisterUpdater(sunUpdater);
-
-            var sunFilter = new ElementClassFilter(typeof(SunAndShadowSettings));
-            var filterList = new List<ElementFilter> { sunFilter };
-            ElementFilter filter = new LogicalOrFilter(filterList);
-            UpdaterRegistry.AddTrigger(
-                sunUpdater.GetUpdaterId(),
-                filter,
-                Element.GetChangeTypeAny());
-            Updaters.Add(sunUpdater);
-        }
-
-        //Not removed UIControlledApplication events
-        private void SubscribeApplicationEvents()
-        {
-            proxy = new EventHandlerProxy();
-
-            ControlledApplication.DocumentClosing += proxy.OnApplicationDocumentClosing;
-            ControlledApplication.DocumentClosed += proxy.OnApplicationDocumentClosed;
-            ControlledApplication.DocumentOpened += proxy.OnApplicationDocumentOpened;
-        }
-
-        //Note remove UICOntrolledApplication events
-        private void UnsubscribeApplicationEvents()
-        {
-            ControlledApplication.DocumentClosing -= proxy.OnApplicationDocumentClosing;
-            ControlledApplication.DocumentClosed -= proxy.OnApplicationDocumentClosed;
-            ControlledApplication.DocumentOpened -= proxy.OnApplicationDocumentOpened;
-
-            proxy = null;
+            e.Succeeded = true; //call dynamo model here
+            var app = e.DesignAutomationData.RevitApp;
+            var da = new Dynamo.Applications.DynamoRevitHeadless();
+            if(da.PrepareModel(app))
+                da.ExecuteWorkspace(@"F:\test.dyn");
+            //else throw an exception
         }
 
         //no change
@@ -230,7 +165,6 @@ namespace DynamoRevitHeadless
         private void UnsubscribeAssemblyEvents()
         {
             AppDomain.CurrentDomain.AssemblyResolve -= ResolveAssembly;
-            //AppDomain.CurrentDomain.AssemblyLoad -= AssemblyLoad;
         }
 
         //Note no change
@@ -277,23 +211,13 @@ namespace DynamoRevitHeadless
             }
         }
 
-        private void SubscribeDocumentChangedEvent()
-        {
-            ControlledApplication.DocumentChanged += RevitServicesUpdater.Instance.ApplicationDocumentChanged;
-        }
-
-        private void UnsubscribeDocumentChangedEvent()
-        {
-            ControlledApplication.DocumentChanged -= RevitServicesUpdater.Instance.ApplicationDocumentChanged;
-        }
-
         //Note shared 95%
         /// <summary>
         /// Whether the DynamoCore and DynamoRevit are in Revit's internal Addin folder
         /// </summary>
         /// <param name="application"></param>
         /// <returns>True is that Dynamo and DynamoRevit are in Revit internal Addins folder</returns>
-        private static Boolean IsRevitInternalAddin(ControlledApplication application)
+        private static bool IsRevitInternalAddin(ControlledApplication application)
         {
             if (application == null)
                 return false;

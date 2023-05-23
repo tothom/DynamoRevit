@@ -66,6 +66,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamoRevitHeadless", "Dyna
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RevitServicesUI", "Libraries\RevitServicesUI\RevitServicesUI.csproj", "{35879A4A-ADE4-4BBC-A79E-5E3B6F145C1E}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "DynamoRevitShared", "DynamoRevitShared\DynamoRevitShared.shproj", "{9C675F6E-8BD1-4876-B92D-046407ECFAFA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -153,5 +155,10 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8E505F11-FCD1-40AC-9CC6-5BF6628AF7EC}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		DynamoRevitShared\DynamoRevitShared.projitems*{5f4b4e3d-3e43-4412-8a9c-ca33e52d29b6}*SharedItemsImports = 4
+		DynamoRevitShared\DynamoRevitShared.projitems*{9c675f6e-8bd1-4876-b92d-046407ecfafa}*SharedItemsImports = 13
+		DynamoRevitShared\DynamoRevitShared.projitems*{fd56ae51-739e-4893-8de4-925d60c7097c}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal
