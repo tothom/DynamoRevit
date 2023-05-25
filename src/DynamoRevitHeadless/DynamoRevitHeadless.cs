@@ -13,6 +13,7 @@ using Dynamo.Models;
 using Dynamo.Scheduler;
 using DynamoInstallDetective;
 using Greg.AuthProviders;
+using RevitServices.Persistence;
 
 namespace Dynamo.Applications
 {
@@ -36,7 +37,6 @@ namespace Dynamo.Applications
         static DynamoRevitHeadless()
         {
             idleActions = new List<Action>();
-            //RevitDynamoViewModel = null;
             RevitDynamoModel = null;
             handledCrash = false;
             preLoadExceptions = new List<Exception>();
@@ -183,6 +183,7 @@ namespace Dynamo.Applications
             // so tell Dynamo core we've loaded that version.
             var loadedLibGVersion = PreloadAsmFromRevit();
 
+            DocumentManager.Instance.CurrentApplication = app;
 
             return RevitDynamoModel.Start(
             new RevitDynamoModel.RevitStartConfiguration()
