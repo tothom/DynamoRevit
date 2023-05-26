@@ -179,5 +179,18 @@ namespace RevitServices.Persistence
                 Instance.CurrentDBDocument.Regenerate();
             }
         }
+
+        public void PrepareForAutomation(Application app)
+        {
+            CurrentApplication = app;
+            foreach (Document d in app.Documents)
+            {
+                if (!d.IsLinked)
+                {
+                    CurrentDBDocument = d;
+                    break;
+                }    
+            }
+        }
     }
 }

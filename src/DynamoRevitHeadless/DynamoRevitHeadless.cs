@@ -183,7 +183,7 @@ namespace Dynamo.Applications
             // so tell Dynamo core we've loaded that version.
             var loadedLibGVersion = PreloadAsmFromRevit();
 
-            DocumentManager.Instance.CurrentApplication = app;
+            DocumentManager.Instance.PrepareForAutomation(app);
 
             return RevitDynamoModel.Start(
             new RevitDynamoModel.RevitStartConfiguration()

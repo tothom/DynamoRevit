@@ -38,7 +38,7 @@ namespace DynamoRevitHeadless
         /// <returns>The root folder path of Dynamo Core.</returns>
         private static string GetDynamoCorePath()
         {
-            return @"C:\Program Files\Autodesk\Revit 2024\AddIns\DynamoForRevit";
+            return @"E:\GitHub\Dynamo\bin\AnyCPU\Debug";
 
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             var dynamoRevitRootDirectory = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
@@ -152,7 +152,7 @@ namespace DynamoRevitHeadless
             var app = e.DesignAutomationData.RevitApp;
             var da = new Dynamo.Applications.DynamoRevitHeadless();
             if(da.PrepareModel(app))
-                da.ExecuteWorkspace(@"F:\test.dyn");
+                da.ExecuteWorkspace(@"F:\D4DA\test.dyn");
             //else throw an exception
         }
 

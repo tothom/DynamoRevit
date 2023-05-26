@@ -225,8 +225,8 @@ namespace Dynamo.Applications.Models
             externalCommandData = configuration.ExternalCommandData;
 
             SubscribeRevitServicesUpdaterEvents();
-
-            SubscribeApplicationEvents(configuration.ExternalCommandData);
+            if (configuration.ExternalCommandData != null)
+                SubscribeApplicationEvents(configuration.ExternalCommandData);
             InitializeDocumentManager();
             SubscribeDocumentManagerEvents();
             SubscribeTransactionManagerEvents();
@@ -497,7 +497,7 @@ namespace Dynamo.Applications.Models
         private void InitializeDocumentManager()
         {
             // Set the intitial document.
-            var activeUIDocument = UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
+            var activeUIDocument = UIDocumentManager.Instance.CurrentUIApplication?.ActiveUIDocument;
             if (activeUIDocument != null)
             {
                 UIDocumentManager.Instance.CurrentUIDocument = activeUIDocument;
