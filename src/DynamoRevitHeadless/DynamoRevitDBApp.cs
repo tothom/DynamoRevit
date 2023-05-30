@@ -36,7 +36,7 @@ namespace DynamoRevitHeadless
         /// Finds the Dynamo Core path by looking into registery or potentially a config file.
         /// </summary>
         /// <returns>The root folder path of Dynamo Core.</returns>
-        private static string GetDynamoCorePath()
+        internal static string GetDynamoCorePath()
         {
             return @"E:\GitHub\Dynamo\bin\AnyCPU\Debug";
 

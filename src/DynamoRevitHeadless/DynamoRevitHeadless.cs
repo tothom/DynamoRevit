@@ -14,6 +14,7 @@ using Dynamo.Scheduler;
 using DynamoInstallDetective;
 using Greg.AuthProviders;
 using RevitServices.Persistence;
+using DBApp = DynamoRevitHeadless.DynamoRevitDBApp;
 
 namespace Dynamo.Applications
 {
@@ -97,7 +98,7 @@ namespace Dynamo.Applications
             var path =
                     Environment.GetEnvironmentVariable(
                         "Path",
-                        EnvironmentVariableTarget.Process) + ";" + DynamoRevitApp.DynamoCorePath;
+                        EnvironmentVariableTarget.Process) + ";" + DBApp.DynamoCorePath;
             Environment.SetEnvironmentVariable("Path", path, EnvironmentVariableTarget.Process);
         }
 
@@ -165,7 +166,7 @@ namespace Dynamo.Applications
             // Temporary fix to pre-load DLLs that were also referenced in Revit folder. 
             // To do: Need to align with Revit when provided a chance.
             PreloadDynamoCoreDlls();
-            var corePath = DynamoRevitApp.DynamoCorePath;
+            var corePath = DBApp.DynamoCorePath;
             var dynamoRevitExePath = Assembly.GetExecutingAssembly().Location;
             var dynamoRevitRoot = Path.GetDirectoryName(dynamoRevitExePath);// ...\Revit_xxxx\ folder
 
@@ -219,7 +220,7 @@ namespace Dynamo.Applications
         {
             var asmLocation = AppDomain.CurrentDomain.BaseDirectory;
             Version libGVersion = findRevitASMVersion(asmLocation);
-            var dynCorePath = DynamoRevitApp.DynamoCorePath;
+            var dynCorePath = DBApp.DynamoCorePath;
             // Get the corresponding libG preloader location for the target ASM loading version.
             // If there is exact match preloader version to the target ASM version, use it, 
             // otherwise use the closest below.

@@ -35,7 +35,7 @@
   <ItemGroup>
     <Reference Include="DesignAutomationBridge, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Autodesk.Forge.DesignAutomation.Revit.2024.0.2\lib\net48\DesignAutomationBridge.dll</HintPath>
-      <Private>False</Private>
+      <Private>True</Private>
     </Reference>
     <Reference Include="DynamoApplications">
       <HintPath>..\packages\DynamoVisualProgramming.Core\lib\net48\DynamoApplications.dll</HintPath>
