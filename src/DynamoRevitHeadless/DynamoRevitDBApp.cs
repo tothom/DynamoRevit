@@ -38,10 +38,11 @@ namespace DynamoRevitHeadless
         /// <returns>The root folder path of Dynamo Core.</returns>
         internal static string GetDynamoCorePath()
         {
-            return @"E:\GitHub\Dynamo\bin\AnyCPU\Debug";
+            //return @"E:\GitHub\Dynamo\bin\AnyCPU\Debug";
 
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             var dynamoRevitRootDirectory = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
+            return dynamoRevitRootDirectory;
             var dynamoRoot = GetDynamoRoot(dynamoRevitRootDirectory);
 
             var assembly = Assembly.LoadFrom(Path.Combine(dynamoRevitRootDirectory, "DynamoInstallDetective.dll"));
@@ -148,11 +149,12 @@ namespace DynamoRevitHeadless
 
         public void HandleDesignAutomationReadyEvent(object sender, DesignAutomationReadyEventArgs e)
         {
+            var root = Path.GetDirectoryName(e.DesignAutomationData.FilePath);
             e.Succeeded = true; //call dynamo model here
             var app = e.DesignAutomationData.RevitApp;
             var da = new Dynamo.Applications.DynamoRevitHeadless();
             if(da.PrepareModel(app))
-                da.ExecuteWorkspace(@"F:\D4DA\test.dyn");
+                da.ExecuteWorkspace(Path.Combine(root, "graph.dyn"));
             //else throw an exception
         }
 
