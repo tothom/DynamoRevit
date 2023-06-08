@@ -20,10 +20,7 @@ namespace Dynamo.Applications
 {
     public class RDADynamo
     {
-        private static List<Action> idleActions;
-        private static bool handledCrash;
         private static List<Exception> preLoadExceptions;
-        private Stopwatch startupTimer;
 
         /// <summary>
         /// Get or Set the current RevitDynamoModel available in Revit context
@@ -37,9 +34,7 @@ namespace Dynamo.Applications
 
         static RDADynamo()
         {
-            idleActions = new List<Action>();
             RevitDynamoModel = null;
-            handledCrash = false;
             preLoadExceptions = new List<Exception>();
         }
 
@@ -49,9 +44,9 @@ namespace Dynamo.Applications
             preLoadExceptions.AddRange(StartupUtils.CheckAssemblyForVersionMismatches(args.LoadedAssembly));
         }
 
-        public bool PrepareModel(Autodesk.Revit.ApplicationServices.Application app)
+        public bool PrepareModel(Autodesk.Revit.ApplicationServices.Application app, out string msg)
         {
-            startupTimer = Stopwatch.StartNew();
+            var startupTimer = Stopwatch.StartNew();
 
             InitializeCore();
             //subscribe to the assembly load
@@ -70,7 +65,7 @@ namespace Dynamo.Applications
                 AppDomain.CurrentDomain.AssemblyLoad -= AssemblyLoad;
 
                 RevitDynamoModel.HandlePostInitialization();
-
+                msg = $"Loaded in {startupTimer.Elapsed.TotalSeconds} sec.";
                 return true;
             }
             catch (Exception ex)
@@ -84,7 +79,7 @@ namespace Dynamo.Applications
                     RevitDynamoModel.ShutDown(false);
                     RevitDynamoModel = null;
                 }
-
+                msg = ex.Message + Environment.NewLine + ex.StackTrace;
                 return false;
             }
         }
