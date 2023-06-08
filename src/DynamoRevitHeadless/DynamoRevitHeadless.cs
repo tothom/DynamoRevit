@@ -103,34 +103,6 @@ namespace Dynamo.Applications
         }
 
         #region Initialization
-
-        /// <summary>
-        /// DynamoShapeManager.dll is a companion assembly of Dynamo core components,
-        /// we do not want a static reference to it (since the Revit add-on can be 
-        /// installed anywhere that's outside of Dynamo), we do not want a duplicated 
-        /// reference to it. Here we use reflection to obtain GetGeometryFactoryPath
-        /// method, and call it to get the geometry factory assembly path.
-        /// </summary>
-        /// <param name="corePath">The path where DynamoShapeManager.dll can be 
-        /// located.</param>
-        /// <returns>Returns the full path to geometry factory assembly.</returns>
-        /// 
-        [Obsolete("Please use the overload which specifies the version of the geometry library to load")]
-        public static string GetGeometryFactoryPath(string corePath)
-        {
-            var dynamoAsmPath = Path.Combine(corePath, "DynamoShapeManager.dll");
-            var assembly = Assembly.LoadFrom(dynamoAsmPath);
-            if (assembly == null)
-                throw new FileNotFoundException("File not found", dynamoAsmPath);
-
-            var utilities = assembly.GetType("DynamoShapeManager.Utilities");
-            var getGeometryFactoryPath = utilities.GetMethod("GetGeometryFactoryPath2");
-
-            //if old method is called default to 224.4.0
-            return (getGeometryFactoryPath.Invoke(null,
-                new object[] { corePath, new Version(224, 4, 0) }) as string);
-        }
-
         public static string GetGeometryFactoryPath(string corePath, Version version)
         {
             var dynamoAsmPath = Path.Combine(corePath, "DynamoShapeManager.dll");
@@ -206,14 +178,7 @@ namespace Dynamo.Applications
         private static string GetRevitContext(Autodesk.Revit.ApplicationServices.Application app)
         {
             var r = new Regex(@"\b(Autodesk |Structure |MEP |Architecture )\b");
-            string context = r.Replace(app.VersionName, "");
-
-            //they changed the application version name conventions for vasari
-            //it no longer has a version year so we can't compare it to other versions
-            if (context == "Vasari")
-                context = "Vasari 2014";
-
-            return context;
+            return r.Replace(app.VersionName, "");
         }
 
         internal static Version PreloadAsmFromRevit()

@@ -38,11 +38,13 @@ namespace DynamoRevitHeadless
         /// <returns>The root folder path of Dynamo Core.</returns>
         internal static string GetDynamoCorePath()
         {
-            //return @"E:\GitHub\Dynamo\bin\AnyCPU\Debug";
+            var debug = @"E:\GitHub\Dynamo\bin\AnyCPU\Debug";
+            if (Directory.Exists(debug))
+                return debug;
 
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
             var dynamoRevitRootDirectory = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
             return dynamoRevitRootDirectory;
+            
             var dynamoRoot = GetDynamoRoot(dynamoRevitRootDirectory);
 
             var assembly = Assembly.LoadFrom(Path.Combine(dynamoRevitRootDirectory, "DynamoInstallDetective.dll"));
@@ -54,6 +56,7 @@ namespace DynamoRevitHeadless
                 throw new MissingMethodException("Method 'DynamoInstallDetective.DynamoProducts.GetDynamoPath' not found");
             }
 
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
             var methodParams = new object[] { version, dynamoRoot };
             return methodToInvoke.Invoke(null, methodParams) as string;
         }
@@ -113,6 +116,7 @@ namespace DynamoRevitHeadless
 
         public ExternalDBApplicationResult OnStartup(ControlledApplication application)
         {
+            Console.WriteLine("Starting to load D4DA");
             try
             {
                 if (!TryResolveDynamoCore(application))
@@ -130,6 +134,8 @@ namespace DynamoRevitHeadless
                 _ = loadDependentComponents(); //(Dimitar) should we fail to load here if the internal method returns Failed?
 
                 DesignAutomationBridge.DesignAutomationReadyEvent += HandleDesignAutomationReadyEvent;
+
+                Console.WriteLine("D4DA Loaded");
 
                 return ExternalDBApplicationResult.Succeeded;
             }
@@ -149,13 +155,24 @@ namespace DynamoRevitHeadless
 
         public void HandleDesignAutomationReadyEvent(object sender, DesignAutomationReadyEventArgs e)
         {
+            Console.WriteLine("DA event raised.");
+
             var root = Path.GetDirectoryName(e.DesignAutomationData.FilePath);
-            e.Succeeded = true; //call dynamo model here
+            Console.WriteLine($"root folder is '{root}'");
+            e.Succeeded = true;
             var app = e.DesignAutomationData.RevitApp;
+            Console.WriteLine("Preparing Dynamo model.");
             var da = new Dynamo.Applications.DynamoRevitHeadless();
             if(da.PrepareModel(app))
+            {
+                Console.WriteLine("Done. Starting graph execution.");
                 da.ExecuteWorkspace(Path.Combine(root, "graph.dyn"));
-            //else throw an exception
+                Console.WriteLine("Finished. Graph ran to completion.");
+            }
+            else
+            {
+                Console.WriteLine("Could not prepare Dynamo model.");
+            }
         }
 
         //no change

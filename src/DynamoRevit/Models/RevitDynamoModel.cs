@@ -5,11 +5,7 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Windows.Forms;
 using Autodesk.Revit.DB;
-using Autodesk.Revit.DB.Events;
-using Autodesk.Revit.UI;
-using Autodesk.Revit.UI.Events;
 using Dynamo.Graph.Nodes;
 using Dynamo.Graph.Nodes.ZeroTouch;
 using Dynamo.Graph.Workspaces;
@@ -28,7 +24,6 @@ using RevitServices.Materials;
 using RevitServices.Persistence;
 using RevitServices.Threading;
 using RevitServices.Transactions;
-using RevitServicesUI.Persistence;
 using Category = Revit.Elements.Category;
 using Element = Autodesk.Revit.DB.Element;
 using View = Autodesk.Revit.DB.View;
@@ -60,13 +55,6 @@ namespace Dynamo.Applications.Models
             public IEnumerable<Dynamo.Extensions.IExtension> Extensions { get; set; }
             public TaskProcessMode ProcessMode { get; set; }           
         }
-
-        /// <summary>
-        ///     Flag for syncing up document switches between Application.DocumentClosing and
-        ///     Application.DocumentClosed events.
-        /// </summary>
-        private bool updateCurrentUIDoc;
-
         private readonly DynamoRevitCommandData externalCommandData;
 
         #region Events
@@ -80,44 +68,23 @@ namespace Dynamo.Applications.Models
         }
 
         public event Action RevitDocumentLost;
-
-        private void OnRevitDocumentLost()
-        {
-            var handler = RevitDocumentLost;
-            if (handler != null) handler();
-        }
+        internal void OnRevitDocumentLost() => RevitDocumentLost?.Invoke();
 
         public event Action RevitContextUnavailable;
 
-        private void OnRevitContextUnavailable()
-        {
-            var handler = RevitContextUnavailable;
-            if (handler != null) handler();
-        }
+        private void OnRevitContextUnavailable() => RevitContextUnavailable?.Invoke();
 
         public event Action RevitContextAvailable;
 
-        private void OnRevitContextAvailable()
-        {
-            var handler = RevitContextAvailable;
-            if (handler != null) handler();
-        }
+        private void OnRevitContextAvailable()=> RevitContextAvailable?.Invoke();
 
         public event Action<View> RevitViewChanged;
 
-        private void OnRevitViewChanged(View newView)
-        {
-            var handler = RevitViewChanged;
-            if (handler != null) handler(newView);
-        }
+        private void OnRevitViewChanged(View newView) => RevitViewChanged?.Invoke(newView);
 
         public event Action InvalidRevitDocumentActivated;
 
-        private void OnInvalidRevitDocumentActivated()
-        {
-            var handler = InvalidRevitDocumentActivated;
-            if (handler != null) handler();
-        }
+        private void OnInvalidRevitDocumentActivated() => InvalidRevitDocumentActivated?.Invoke();
 
         protected override void OnWorkspaceRemoveStarted(WorkspaceModel workspace)
         {
@@ -225,9 +192,6 @@ namespace Dynamo.Applications.Models
             externalCommandData = configuration.ExternalCommandData;
 
             SubscribeRevitServicesUpdaterEvents();
-            if (configuration.ExternalCommandData != null)
-                SubscribeApplicationEvents(configuration.ExternalCommandData);
-            InitializeDocumentManager();
             SubscribeDocumentManagerEvents();
             SubscribeTransactionManagerEvents();
 
@@ -494,20 +458,7 @@ namespace Dynamo.Applications.Models
             setupPython = true;
         }
 
-        private void InitializeDocumentManager()
-        {
-            // Set the intitial document.
-            var activeUIDocument = UIDocumentManager.Instance.CurrentUIApplication?.ActiveUIDocument;
-            if (activeUIDocument != null)
-            {
-                UIDocumentManager.Instance.CurrentUIDocument = activeUIDocument;
-                DocumentManager.Instance.HandleDocumentActivation(activeUIDocument.ActiveView);
-
-                OnRevitDocumentChanged();
-            }
-        }
-
-        private static void InitializeMaterials()
+        internal static void InitializeMaterials()
         {
             // Ensure that the current document has the needed materials
             // and graphic styles to support visualization in Revit.
@@ -551,100 +502,6 @@ namespace Dynamo.Applications.Models
             DocumentManager.OnLogError -= Logger.Log;
         }
 
-        private bool hasRegisteredApplicationEvents;
-        private void SubscribeApplicationEvents(DynamoRevitCommandData commandData)
-        {
-            if (hasRegisteredApplicationEvents)
-            {
-                return;
-            }
-
-            DynamoRevitApp.UIEventHandlerProxy.ViewActivating += OnApplicationViewActivating;
-            DynamoRevitApp.UIEventHandlerProxy.ViewActivated += OnApplicationViewActivated;
-            DynamoRevitApp.EventHandlerProxy.DocumentClosing += OnApplicationDocumentClosing;
-            DynamoRevitApp.EventHandlerProxy.DocumentClosed += OnApplicationDocumentClosed;
-            DynamoRevitApp.EventHandlerProxy.DocumentOpened += OnApplicationDocumentOpened;
-
-            hasRegisteredApplicationEvents = true;
-        }
-
-        private void UnsubscribeApplicationEvents(DynamoRevitCommandData commandData)
-        {
-            if (!hasRegisteredApplicationEvents)
-            {
-                return;
-            }
-
-            DynamoRevitApp.UIEventHandlerProxy.ViewActivating -= OnApplicationViewActivating;
-            DynamoRevitApp.UIEventHandlerProxy.ViewActivated -= OnApplicationViewActivated;
-            DynamoRevitApp.EventHandlerProxy.DocumentClosing -= OnApplicationDocumentClosing;
-            DynamoRevitApp.EventHandlerProxy.DocumentClosed -= OnApplicationDocumentClosed;
-            DynamoRevitApp.EventHandlerProxy.DocumentOpened -= OnApplicationDocumentOpened;
-
-            hasRegisteredApplicationEvents = false;
-        }
-
-        #endregion
-
-        #region Application event handler
-        /// <summary>
-        /// Handler for Revit's DocumentOpened event.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnApplicationDocumentOpened(object sender, DocumentOpenedEventArgs e)
-        {
-            HandleApplicationDocumentOpened();
-        }
-
-        /// <summary>
-        /// Handler for Revit's DocumentClosing event.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnApplicationDocumentClosing(object sender, DocumentClosingEventArgs e)
-        {
-            // Invalidate the cached active document value if it is the closing document.
-            var activeDocumentHashCode = DocumentManager.Instance.ActiveDocumentHashCode;
-            if (e.Document != null && (e.Document.GetHashCode() == activeDocumentHashCode))
-                DocumentManager.Instance.HandleDocumentActivation(null);
-
-            HandleApplicationDocumentClosing(e.Document);
-        }
-
-        /// <summary>
-        /// Handler for Revit's DocumentClosed event.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnApplicationDocumentClosed(object sender, DocumentClosedEventArgs e)
-        {
-            HandleApplicationDocumentClosed();
-        }
-
-        /// <summary>
-        /// Handler for Revit's ViewActivating event.
-        /// Addins are not available in some views in Revit, notably perspective views.
-        /// This will present a warning that Dynamo is not available to run and disable the run button.
-        /// This handler is called before the ViewActivated event registered on the RevitDynamoModel.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        internal void OnApplicationViewActivating(object sender, ViewActivatingEventArgs e)
-        {
-            SetRunEnabledBasedOnContext(e.NewActiveView, true);
-        }
-
-        /// <summary>
-        /// Handler for Revit's ViewActivated event.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnApplicationViewActivated(object sender, ViewActivatedEventArgs e)
-        {
-            HandleRevitViewActivated();
-        }
-
         #endregion
 
         #region Public methods
@@ -663,15 +520,10 @@ namespace Dynamo.Applications.Models
         {
             if (shutdownHost)
             {
-                DynamoRevitApp.AddIdleAction(ShutdownRevitHostOnce);
+                DynamoRevitApp.AddIdleAction(ViewModel.DynamoRevitViewModel.ShutdownRevitHost);
             }
 
             base.PreShutdownCore(shutdownHost);
-        }
-
-        private static void ShutdownRevitHostOnce()
-        {
-            ShutdownRevitHost();
         }
 
         protected override void ShutDownCore(bool shutDownHost)
@@ -683,7 +535,6 @@ namespace Dynamo.Applications.Models
             // unsubscribe events
             RevitServicesUpdater.Instance.UnRegisterAllChangeHooks();
 
-            UnsubscribeApplicationEvents(externalCommandData);
             UnsubscribeDocumentManagerEvents();
             UnsubscribeRevitServicesUpdaterEvents();
             UnsubscribeTransactionManagerEvents();
@@ -696,9 +547,6 @@ namespace Dynamo.Applications.Models
         protected override void PostShutdownCore(bool shutdownHost)
         {
             base.PostShutdownCore(shutdownHost);
-            
-            // Always reset current UI document on shutdown
-            UIDocumentManager.Instance.CurrentUIDocument = null;
         }
 
         /// <summary>
@@ -785,21 +633,18 @@ namespace Dynamo.Applications.Models
                 // If there is a current document, then set the run enabled
                 // state based on whether the view just activated is 
                 // the same document.
-                if (UIDocumentManager.Instance.CurrentUIDocument != null)
-                {
-                    var newEnabled = newView != null &&
+                var newEnabled = newView != null &&
                         newView.Document.Equals(DocumentManager.Instance.CurrentDBDocument);
 
-                    if (!newEnabled)
-                    {
-                        OnInvalidRevitDocumentActivated();
-                        Logger.Log("The RunButton is disabled because Dynamo is not bound to the current active document.");
-                    }
+                if (!newEnabled)
+                {
+                    OnInvalidRevitDocumentActivated();
+                    Logger.Log("The RunButton is disabled because Dynamo is not bound to the current active document.");
+                }
 
-                    foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
-                    {
-                        ws.RunSettings.RunEnabled = newEnabled;
-                    }
+                foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
+                {
+                    ws.RunSettings.RunEnabled = newEnabled;
                 }
             }
         }
@@ -809,115 +654,9 @@ namespace Dynamo.Applications.Models
         #region Event handlers
 
         /// <summary>
-        /// Handler Revit's DocumentOpened event.
-        /// It is called when a document is opened, but NOT when a document is 
-        /// created from a template.
-        /// </summary>
-        private void HandleApplicationDocumentOpened()
-        {
-            // If the current document is null, for instance if there are
-            // no documents open, then set the current document, and 
-            // present a message telling us where Dynamo is pointing.
-            if (UIDocumentManager.Instance.CurrentUIDocument == null)
-            {
-                var activeUIDocument = UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
-
-                UIDocumentManager.Instance.CurrentUIDocument = activeUIDocument;
-                if (activeUIDocument != null)
-                    DocumentManager.Instance.HandleDocumentActivation(activeUIDocument.ActiveView);
-
-                OnRevitDocumentChanged();
-
-                foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
-                {
-                    ws.RunSettings.RunEnabled = true;
-                }
-
-                ResetForNewDocument();
-            }
-        }
-
-        /// <summary>
-        /// Handler Revit's DocumentClosing event.
-        /// It is called when a document is closing.
-        /// </summary>
-        private void HandleApplicationDocumentClosing(Document doc)
-        {
-            // ReSharper disable once PossibleUnintendedReferenceComparison
-            if (DocumentManager.Instance.CurrentDBDocument.Equals(doc))
-            {
-                updateCurrentUIDoc = true;
-            }
-        }
-
-        /// <summary>
-        /// Handle Revit's DocumentClosed event.
-        /// It is called when a document is closed.
-        /// </summary>
-        private void HandleApplicationDocumentClosed()
-        {
-            // If the active UI document is null, it means that all views have been 
-            // closed from all document. Clear our reference, present a warning,
-            // and disable running.
-            if (UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument == null)
-            {
-                UIDocumentManager.Instance.CurrentUIDocument = null;
-                foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
-                {
-                    ws.RunSettings.RunEnabled = false;
-                }
-
-                OnRevitDocumentLost();
-            }
-            else
-            {
-                // If Dynamo's active UI document's document is the one that was just closed
-                // then set Dynamo's active UI document to whatever revit says is active.
-                if (updateCurrentUIDoc)
-                {
-                    updateCurrentUIDoc = false;
-                    UIDocumentManager.Instance.CurrentUIDocument =
-                        UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
-
-                    OnRevitDocumentChanged();
-                }
-            }
-
-            var uiDoc = DocumentManager.Instance.CurrentDBDocument;
-            if (uiDoc != null)
-            {
-                SetRunEnabledBasedOnContext(uiDoc.ActiveView);
-            }
-        }
-
-        /// <summary>
-        /// Handler Revit's ViewActivated event.
-        /// It is called when a view is activated. It is called after the 
-        /// ViewActivating event.
-        /// </summary>
-        private void HandleRevitViewActivated()
-        {
-            // If there is no active document, then set it to whatever
-            // document has just been activated
-            if (UIDocumentManager.Instance.CurrentUIDocument == null)
-            {
-                UIDocumentManager.Instance.CurrentUIDocument =
-                    UIDocumentManager.Instance.CurrentUIApplication.ActiveUIDocument;
-
-                OnRevitDocumentChanged();
-
-                InitializeMaterials();
-                foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
-                {
-                    ws.RunSettings.RunEnabled = true;
-                }
-            }
-        }
-
-        /// <summary>
         ///     Clears all element collections on nodes and resets the visualization manager and the old value.
         /// </summary>
-        private void ResetForNewDocument()
+        internal void ResetForNewDocument()
         {
             foreach (var ws in Workspaces.OfType<HomeWorkspaceModel>())
             {
@@ -925,22 +664,6 @@ namespace Dynamo.Applications.Models
             }
 
             OnRevitDocumentChanged();
-        }
-
-        private static void ShutdownRevitHost()
-        {
-            // this method cannot be called without Revit 2014
-            var exitCommand = RevitCommandId.LookupPostableCommandId(PostableCommand.ExitRevit);
-            var uiApplication = UIDocumentManager.Instance.CurrentUIApplication;
-
-            if ((uiApplication != null) && uiApplication.CanPostCommand(exitCommand))
-                uiApplication.PostCommand(exitCommand);
-            else
-            {
-                MessageBox.Show(
-                    "A command in progress prevented Dynamo from " +
-                        "closing revit. Dynamo update will be cancelled.");
-            }
         }
 
         private void TransactionManager_FailuresRaised(FailuresAccessor failuresAccessor)
