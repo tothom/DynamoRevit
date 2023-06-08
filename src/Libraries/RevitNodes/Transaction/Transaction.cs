@@ -1,5 +1,4 @@
 ﻿using RevitServices.Persistence;
-using RevitServicesUI.Persistence;
 using RevitServices.Transactions;
 
 namespace Revit.Transaction
@@ -31,7 +30,7 @@ namespace Revit.Transaction
         public static object End(object input)
         {
             TransactionManager.Instance.ForceCloseTransaction();
-            UIDocumentManager.Instance.RefreshActiveView();
+            TransactionManager.Instance.OnTransactionEnded();
             return input;
         }
     }

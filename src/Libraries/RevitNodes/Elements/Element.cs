@@ -289,11 +289,13 @@ namespace Revit.Elements
             // Do not delete Revit owned elements
             if (!IsRevitOwned && remainingBindings == 0 && !didRevitDelete)
             {
+#if RDA
                 if(this.InternalElement is View && InternalElement.IsValidObject &&
                     !RevitServicesUI.Persistence.UIDocumentManager.Instance.IsViewSafeToDelete(InternalElement.Id))
                 {
                     throw new InvalidOperationException(string.Format(Properties.Resources.CantCloseLastOpenView, this.ToString()));
                 }
+#endif
                 DocumentManager.Instance.DeleteElement(new ElementUUID(InternalUniqueId));
             }
             else

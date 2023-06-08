@@ -1,0 +1,722 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.Serialization;
+using Autodesk.Revit.DB;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.ZeroTouch;
+using Dynamo.Graph.Workspaces;
+using Dynamo.Interfaces;
+using Dynamo.Logging;
+using Dynamo.Models;
+using Dynamo.PythonServices;
+using Dynamo.Scheduler;
+using Dynamo.Updates;
+using Dynamo.Utilities;
+using Greg;
+using ProtoCore;
+using Revit.Elements;
+using RevitServices.Elements;
+using RevitServices.Materials;
+using RevitServices.Persistence;
+//using RevitServices.Threading;
+using RevitServices.Transactions;
+using Category = Revit.Elements.Category;
+using Element = Autodesk.Revit.DB.Element;
+using View = Autodesk.Revit.DB.View;
+
+namespace Dynamo.Applications.Models
+{
+    public class RDADynamoModel : DynamoModel
+    {
+        public interface IRevitStartConfiguration : IStartConfiguration
+        {
+        }
+
+        public struct RevitStartConfiguration : IRevitStartConfiguration
+        {
+            public string Context { get; set; }
+            public string DynamoCorePath { get; set; }
+            public string DynamoHostPath { get; set; }
+            public IPathResolver PathResolver { get; set; }
+            public IPreferences Preferences { get; set; }
+            public bool StartInTestMode { get; set; }
+            public bool IsHeadless { get; set; }
+            public IUpdateManager UpdateManager { get; set; }
+            public ISchedulerThread SchedulerThread { get; set; }
+            public string GeometryFactoryPath { get; set; }
+            public IAuthProvider AuthProvider { get; set; }
+            public string PackageManagerAddress { get; set; }
+            public IEnumerable<Dynamo.Extensions.IExtension> Extensions { get; set; }
+            public TaskProcessMode ProcessMode { get; set; }           
+        }
+
+        #region Events
+
+        public event EventHandler RevitDocumentChanged;
+
+        public virtual void OnRevitDocumentChanged()
+        {
+            if (RevitDocumentChanged != null)
+                RevitDocumentChanged(this, EventArgs.Empty);
+        }
+
+        public event Action RevitDocumentLost;
+        internal void OnRevitDocumentLost() => RevitDocumentLost?.Invoke();
+
+        public event Action RevitContextUnavailable;
+
+        private void OnRevitContextUnavailable() => RevitContextUnavailable?.Invoke();
+
+        public event Action RevitContextAvailable;
+
+        private void OnRevitContextAvailable()=> RevitContextAvailable?.Invoke();
+
+        public event Action<View> RevitViewChanged;
+
+        private void OnRevitViewChanged(View newView) => RevitViewChanged?.Invoke(newView);
+
+        public event Action InvalidRevitDocumentActivated;
+
+        private void OnInvalidRevitDocumentActivated() => InvalidRevitDocumentActivated?.Invoke();
+
+        protected override void OnWorkspaceRemoveStarted(WorkspaceModel workspace)
+        {
+            base.OnWorkspaceRemoveStarted(workspace);
+
+            if (workspace is HomeWorkspaceModel)
+                DisposeLogic.IsClosingHomeworkspace = true;
+        }
+
+        protected override void OnWorkspaceRemoved(WorkspaceModel workspace)
+        {
+            base.OnWorkspaceRemoved(workspace);
+
+            if (workspace is HomeWorkspaceModel)
+                DisposeLogic.IsClosingHomeworkspace = false;
+
+            //Unsubscribe the event
+            foreach (var node in workspace.Nodes.ToList())
+            {
+                node.PropertyChanged -= node_PropertyChanged;
+            }
+        }
+
+        protected override void OnWorkspaceAdded(WorkspaceModel workspace)
+        {
+            base.OnWorkspaceAdded(workspace);
+
+            foreach (var node in workspace.Nodes.ToList())
+            {
+                node.PropertyChanged += node_PropertyChanged;
+            }
+
+            if (DocumentManager.Instance.CurrentDBDocument != null)
+            {
+                SetRunEnabledBasedOnContext(DocumentManager.Instance.CurrentDBDocument.ActiveView);
+            }
+        }
+
+        private void node_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "IsFrozen":
+                    ElementBinder.SetElementFreezeState(CurrentWorkspace, sender as NodeModel, EngineController);
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region Properties/Fields
+        //override internal string AppVersion
+        //{
+        //    get
+        //    {
+        //        return base.AppVersion +
+        //            "-R" + DocumentManager.Instance.CurrentApplication.VersionBuild;
+        //    }
+        //}
+
+        public bool IsInMatchingDocumentContext
+        {
+            get
+            {
+                if (DocumentManager.Instance == null)
+                    return false; // Not initialized yet.
+
+                var dm = DocumentManager.Instance;
+                if (dm.CurrentDBDocument == null)
+                    return false; // There's no current document stored.
+
+                // Selection is not allowed in perspective view mode.
+                var view3D = DocumentManager.Instance.CurrentDBDocument.ActiveView as View3D;
+                if ((view3D != null) && view3D.IsPerspective)
+                    return false; // There's no view, or in perspective view.
+
+                // Is the cached document the same as the active document?
+                var currentHashCode = dm.CurrentDBDocument.GetHashCode();
+                return currentHashCode == dm.ActiveDocumentHashCode;
+            }
+        }
+        #endregion
+
+        #region Constructors
+
+        public new static RDADynamoModel Start()
+        {
+            return Start(new RevitStartConfiguration() { ProcessMode = TaskProcessMode.Asynchronous } );
+        }
+
+        public new static RDADynamoModel Start(IRevitStartConfiguration configuration)
+        {
+            // where necessary, assign defaults
+            if (string.IsNullOrEmpty(configuration.Context))
+                configuration.Context = Configuration.Context.REVIT_2015;
+
+            return new RDADynamoModel(configuration);
+        }
+
+        private RDADynamoModel(IRevitStartConfiguration configuration) :
+            base(configuration)
+        {
+            DisposeLogic.IsShuttingDown = false;
+
+            SubscribeRevitServicesUpdaterEvents();
+            SubscribeDocumentManagerEvents();
+            SubscribeTransactionManagerEvents();
+
+            SetupPython();
+        }
+
+
+        #endregion
+
+        #region trace reconciliation
+
+        /// <summary>
+        /// This method reconciles the current state of the host with the current trace data, in revit's case
+        /// deleting elements which have been orphaned and exist in trace but were not re-created
+        /// </summary>
+        /// <param name="orphanedSerializables"></param>
+        public override void PostTraceReconciliation(Dictionary<Guid, List<ISerializable>> orphanedSerializables)
+        {
+            // because of multiSerialzableIDs some extra logic is 
+            // required to detect if one multiSerializableID is a subset of another, if thats the case we should not delete it.
+
+            //get all the currentTraceData again
+            RuntimeCore runtimeCore = null;
+            if (this.EngineController != null && (this.EngineController.LiveRunnerCore != null))
+                runtimeCore = this.EngineController.LiveRunnerRuntimeCore;
+
+            if (runtimeCore == null)
+                return;
+
+            //list of UUIDs we will remove from the list of orphans
+            var toRemove = new List<String>();
+
+            //foreach orphaned ID check 2 cases:
+            //1. an orphaned MultID is totally subset in one of the latest MultIDs
+            //2. the latest IDS are subset in a MultID in the orphan list
+            //in either of these cases we must remove the IDs from the orphan list so they are not deleted by accident
+            foreach (var orphan in orphanedSerializables)
+            {
+                //if there are no multiSeriializables in the orphan then we can skip this orphan
+                if (orphan.Value.OfType<MultipleSerializableId>().Count() == 0)
+                {
+                    continue;
+                }
+                // Selecting all nodes that are either a DSFunction,
+                // a DSVarArgFunction or a CodeBlockNodeModel into a list.
+                var nodeGuids = this.Workspaces.Where(x => x.Guid == orphan.Key).First().Nodes.Where((n) =>
+                {
+                    return (n is DSFunction
+                            || (n is DSVarArgFunction)
+                            || (n is CodeBlockNodeModel));
+                }).Select((n) => n.GUID);
+
+                //this is a list of all trace data for all nodes in the workspace of this orphan
+                var nodeTraceDataList = runtimeCore.RuntimeData.GetCallsitesForNodes(nodeGuids, runtimeCore.DSExecutable);
+               
+                //check each callsite's traceData against the orphans
+                foreach (var kvp in nodeTraceDataList)
+                {
+                    foreach (var cs in kvp.Value)
+                    {
+                        var currentSerializables = cs.TraceData.SelectMany(td => td.RecursiveGetNestedData());
+                        var currentStringIds = currentSerializables.OfType<MultipleSerializableId>().SelectMany(x => x.StringIDs).ToList();
+                        //if the orphaned serializable exists in the currentTraceData as as subset in a MultiSerializableID
+                        toRemove.AddRange(orphan.Value.OfType<MultipleSerializableId>().Where(x => currentSerializables.OfType<MultipleSerializableId>().Any(y => x.isSubset(y))).SelectMany(x=>x.StringIDs).ToList());
+                        //Or if one of the callsites traceData is subset in an orphan
+                        toRemove.AddRange(currentStringIds.Intersect(orphan.Value.OfType<MultipleSerializableId>().SelectMany(y => y.StringIDs)).ToList());
+                        //then remove it from the orphanList so we do not delete it later
+
+                    }
+                }
+            }
+           
+            var orphanedIds = new List<string>();
+            var serializables =
+                orphanedSerializables
+                .SelectMany(kvp => kvp.Value)
+                .Where(x => x is ISerializable);
+
+            orphanedIds.AddRange(serializables.Where(x => x is SerializableId).
+                Cast<SerializableId>().Select(sid => sid.StringID));
+            orphanedIds.AddRange(serializables.Where(x => x is MultipleSerializableId).
+                Cast<MultipleSerializableId>().SelectMany(sid => sid.StringIDs));
+
+            toRemove.ForEach(x => orphanedIds.Remove(x));
+            //the orphansIdsList is now free of elements that are subsets of newly created elements or Items that contain newly created elements
+
+            if (!orphanedIds.Any())
+                return;
+            
+            if (IsTestMode)
+            {
+                DeleteOrphanedElements(orphanedIds, Logger);
+            }
+            else
+            {
+                // Delete all the orphans.
+                //IdlePromise.ExecuteOnIdleAsync(
+                //    () =>
+                //    {
+                //        DeleteOrphanedElements(orphanedIds, Logger);
+                //    });
+            }
+        }
+
+        private static void DeleteOrphanedElements(IEnumerable<string> orphanedIds, ILogger logger)
+        {
+            var toDelete = new List<ElementId>();
+            foreach (var id in orphanedIds)
+            {
+                // Check whether the element is valid before attempting to delete.
+                Element el;
+                if (DocumentManager.Instance.CurrentDBDocument.TryGetElement(id, out el))
+                    toDelete.Add(el.Id);
+            }
+
+            if (!toDelete.Any())
+                return;
+
+            using (var trans = new Transaction(DocumentManager.Instance.CurrentDBDocument))
+            {
+                try
+                {
+                    trans.Start("Dynamo element reconciliation.");
+                    DocumentManager.Instance.CurrentDBDocument.Delete(toDelete);
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    logger.Log(ex);
+                    trans.RollBack();
+                }
+            }
+        }
+
+        #endregion
+
+        #region Initialization
+
+        /// <summary>
+        /// This call is made during start-up sequence after RevitDynamoModel 
+        /// constructor returned. Virtual methods on DynamoModel that perform 
+        /// initialization steps should only be called from here.
+        /// </summary>
+        internal void HandlePostInitialization()
+        {
+            InitializeMaterials(); // Initialize materials for preview.
+        }
+
+        /// <summary>
+        /// Setup the python engine so that it can manage Revit data
+        /// </summary>
+        /// <param name="engine"></param>
+        private void SetupPythonEngine(PythonEngine engine)
+        {
+            if (engine != null)
+            {
+                (engine.OutputDataMarshaler as DataMarshaler).RegisterMarshaler((Element element) => element.ToDSType(true));
+                engine.EvaluationStarted += OnPythonEvalStart;
+                engine.EvaluationFinished += OnPythonEvalFinished;
+            }
+        }
+
+        /// <summary>
+        /// Cleanup all subscribed events and registered marshalers
+        /// </summary>
+        /// <param name="engine"></param>
+        private void CleanUpPythonEngine(PythonEngine engine)
+        {
+            if (engine != null)
+            {
+                (engine.OutputDataMarshaler as DataMarshaler).UnregisterMarshalerOfType<Element>();
+                engine.EvaluationStarted -= OnPythonEvalStart;
+                engine.EvaluationFinished -= OnPythonEvalFinished;
+            }
+        }
+
+        /// <summary>
+        /// Sets up new python engines registered in the available PythonEngine collection
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void OnPythonEngineCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                foreach (var item in e.NewItems)
+                {
+                    SetupPythonEngine(item as PythonEngine);
+                }
+            }
+        }
+
+        // Python evaluation start event handler
+        private DataMarshaler UnwrapElementMarshaler;
+        private void OnPythonEvalStart(string code, IList bindingValues, PythonServices.EventHandlers.ScopeSetAction scopeSet)
+        {
+            if (UnwrapElementMarshaler == null)
+            {
+                UnwrapElementMarshaler = new DataMarshaler();
+                UnwrapElementMarshaler.RegisterMarshaler((Revit.Elements.Element element) => element.InternalElement);
+                UnwrapElementMarshaler.RegisterMarshaler((Category element) => element.InternalCategory);
+                UnwrapElementMarshaler.RegisterMarshaler((Python.Runtime.PyObject pyObj) =>
+                        {
+                            IntPtr gs = Python.Runtime.PythonEngine.AcquireLock();
+                            try
+                            {
+                                using (Python.Runtime.Py.GIL())
+                                {
+                                    if (Python.Runtime.PyDict.IsDictType(pyObj))
+                                    {
+                                        using (var pyDict = new Python.Runtime.PyDict(pyObj))
+                                        {
+                                            var dict = new Python.Runtime.PyDict();
+                                            foreach (Python.Runtime.PyObject item in pyDict.Items())
+                                            {
+                                                dict.SetItem(
+                                                    Python.Runtime.ConverterExtension.ToPython(UnwrapElementMarshaler.Marshal(item.GetItem(0))),
+                                                    Python.Runtime.ConverterExtension.ToPython(UnwrapElementMarshaler.Marshal(item.GetItem(1)))
+                                                );
+                                            }
+                                            return dict;
+                                        }
+                                    }
+                                    var unmarshalled = pyObj.AsManagedObject(typeof(object));
+                                    return UnwrapElementMarshaler.Marshal(unmarshalled);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.Log($"error marshaling python object {pyObj.Handle} {e.Message}");
+                                return pyObj;
+                            }
+                            finally
+                            {
+                                Python.Runtime.PythonEngine.ReleaseLock(gs);
+                            }
+                        });
+            }
+            Func<object, object> unwrap = UnwrapElementMarshaler.Marshal;
+            // Turn off element binding during python script execution
+            ElementBinder.IsEnabled = false;
+            // register UnwrapElement method
+            scopeSet("UnwrapElement", unwrap);
+        }
+
+        // Python evaluation finished event handler
+        private void OnPythonEvalFinished(EvaluationState state, string code, IList bindingValues, PythonServices.EventHandlers.ScopeGetAction scopeGet)
+        {
+            // Turn on element binding after python script execution
+            ElementBinder.IsEnabled = true;
+        }
+
+        private bool setupPython;
+
+        private void SetupPython()
+        {
+            if (setupPython) return;
+
+            // Setup engines for all existing python engines
+            PythonEngineManager.Instance.AvailableEngines.ToList().ForEach(engine => SetupPythonEngine(engine));
+            // Setup engines for any python engines that might be registered later on
+            PythonEngineManager.Instance.AvailableEngines.CollectionChanged += OnPythonEngineCollectionChanged;
+
+            setupPython = true;
+        }
+
+        internal static void InitializeMaterials()
+        {
+            // Ensure that the current document has the needed materials
+            // and graphic styles to support visualization in Revit.
+            MaterialsManager.Instance.InitializeForActiveDocumentOnIdle();
+        }
+
+        #endregion
+
+        #region Event subscribe/unsubscribe
+
+        private void SubscribeRevitServicesUpdaterEvents()
+        {
+            RevitServicesUpdater.Instance.ElementsUpdated += RevitServicesUpdater_ElementsUpdated;
+        }
+
+        private void UnsubscribeRevitServicesUpdaterEvents()
+        {
+            RevitServicesUpdater.Instance.ElementsUpdated -= RevitServicesUpdater_ElementsUpdated;
+        }
+
+        private void SubscribeTransactionManagerEvents()
+        {
+            TransactionManager.Instance.TransactionWrapper.FailuresRaised +=
+                TransactionManager_FailuresRaised;
+        }
+
+        private void UnsubscribeTransactionManagerEvents()
+        {
+            TransactionManager.Instance.TransactionWrapper.FailuresRaised -=
+                TransactionManager_FailuresRaised;
+        }
+
+        private void SubscribeDocumentManagerEvents()
+        {
+            DocumentManager.OnLogError += Logger.Log;
+        }
+
+        private void UnsubscribeDocumentManagerEvents()
+        {
+            DocumentManager.OnLogError -= Logger.Log;
+        }
+
+        #endregion
+
+        #region Public methods
+
+        public override void OnEvaluationCompleted(object sender, EvaluationCompletedEventArgs e)
+        {
+            Debug.WriteLine(ElementIDLifecycleManager<long>.GetInstance());
+
+            // finally close the transaction!
+            TransactionManager.Instance.ForceCloseTransaction();
+
+            base.OnEvaluationCompleted(sender, e);
+        }
+
+        //protected override void PreShutdownCore(bool shutdownHost)
+        //{
+        //    if (shutdownHost)
+        //    {
+        //        DynamoRevitApp.AddIdleAction(ViewModel.DynamoRevitViewModel.ShutdownRevitHost);
+        //    }
+
+        //    base.PreShutdownCore(shutdownHost);
+        //}
+
+        protected override void ShutDownCore(bool shutDownHost)
+        {
+            DisposeLogic.IsShuttingDown = true;
+
+            base.ShutDownCore(shutDownHost);
+
+            // unsubscribe events
+            RevitServicesUpdater.Instance.UnRegisterAllChangeHooks();
+
+            UnsubscribeDocumentManagerEvents();
+            UnsubscribeRevitServicesUpdaterEvents();
+            UnsubscribeTransactionManagerEvents();
+            PythonEngineManager.Instance.AvailableEngines.ToList().ForEach(engine => CleanUpPythonEngine(engine));
+            PythonEngineManager.Instance.AvailableEngines.CollectionChanged -= OnPythonEngineCollectionChanged;
+
+            ElementIDLifecycleManager<long>.DisposeInstance();
+        }
+
+        protected override void PostShutdownCore(bool shutdownHost)
+        {
+            base.PostShutdownCore(shutdownHost);
+        }
+
+        /// <summary>
+        /// This event handler is called if 'markNodesAsDirty' in a 
+        /// prior call to RevitDynamoModel.ResetEngine was set to 'true'.
+        /// </summary>
+        /// <param name="markNodesAsDirty"></param>
+        private void OnResetMarkNodesAsDirty(bool markNodesAsDirty)
+        {
+            foreach (var workspace in Workspaces.OfType<HomeWorkspaceModel>())
+                workspace.ResetEngine(EngineController, markNodesAsDirty);
+        }
+
+        /// <summary>
+        /// Check if the Revit context is available based on 'newView' and
+        /// set the Runsettings.RunEnabled flag on each HomeWorkspaceModel accordingly.
+        /// The Revit context is unavailable for perspective views only.
+        /// Raise the RevitContextAvailable event if the context is about to be available and 
+        /// 'raiseRevitContextAvailableEvent' is 'true'
+        /// Raise the RevitContextUnavilable event if the the context is about to be unavailable.
+        /// /// </summary>
+        /// <param name="newView"></param>
+        /// <param name="raiseRevitContextAvailableEvent"></param>
+        public void SetRunEnabledBasedOnContext(View newView, bool raiseRevitContextAvailableEvent = false)
+        {
+            DocumentManager.Instance.HandleDocumentActivation(newView);
+
+            var view = newView as View3D;
+
+            if (view != null && view.IsPerspective
+                && Context != Configuration.Context.VASARI_2014)
+            {
+                // Pick up current state
+                bool currentState = false;
+                foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
+                {
+                    if (ws.RunSettings.RunEnabled)
+                    {
+                        currentState = true;
+                        break;
+                    }
+                }
+
+                // Only notify if we are changing state e.g. the Revit context becomes unavailable
+                if (currentState)
+                {
+                    OnRevitContextUnavailable();
+                }
+
+                foreach (
+                    var ws in Workspaces.OfType<HomeWorkspaceModel>())
+                {
+                    ws.RunSettings.RunEnabled = false;
+                }
+            }
+            else
+            {
+                if (newView != null)
+                {
+                    Logger.Log(
+                        string.Format("Active view is now {0}", newView.Name));
+                }
+
+                if(raiseRevitContextAvailableEvent)
+                {
+                    // Pick up current state
+                    bool currentState = true;
+                    foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
+                    {
+                        if(!ws.RunSettings.RunEnabled)
+                        {
+                            currentState = false;
+                            break;
+                        }
+                    }
+
+                    // Only notify if we are changing state e.g. the Revit context becomes available
+                    if (!currentState)
+                    {
+                        OnRevitContextAvailable();
+                    }
+                }
+
+                // If there is a current document, then set the run enabled
+                // state based on whether the view just activated is 
+                // the same document.
+                var newEnabled = newView != null &&
+                        newView.Document.Equals(DocumentManager.Instance.CurrentDBDocument);
+
+                if (!newEnabled)
+                {
+                    OnInvalidRevitDocumentActivated();
+                    Logger.Log("The RunButton is disabled because Dynamo is not bound to the current active document.");
+                }
+
+                foreach (HomeWorkspaceModel ws in Workspaces.OfType<HomeWorkspaceModel>())
+                {
+                    ws.RunSettings.RunEnabled = newEnabled;
+                }
+            }
+        }
+
+        #endregion
+
+        #region Event handlers
+
+        /// <summary>
+        ///     Clears all element collections on nodes and resets the visualization manager and the old value.
+        /// </summary>
+        internal void ResetForNewDocument()
+        {
+            foreach (var ws in Workspaces.OfType<HomeWorkspaceModel>())
+            {
+                ws.MarkNodesAsModifiedAndRequestRun(ws.Nodes);
+            }
+
+            OnRevitDocumentChanged();
+        }
+
+        private void TransactionManager_FailuresRaised(FailuresAccessor failuresAccessor)
+        {
+            IList<FailureMessageAccessor> failList = failuresAccessor.GetFailureMessages();
+
+            IEnumerable<FailureMessageAccessor> query =
+                from fail in failList
+                where fail.GetSeverity() == FailureSeverity.Warning
+                select fail;
+
+            foreach (FailureMessageAccessor fail in query)
+            {
+                Logger.Log("!! Warning: " + fail.GetDescriptionText());
+                failuresAccessor.DeleteWarning(fail);
+            }
+        }
+
+        void RevitServicesUpdater_ElementsUpdated(object sender, ElementUpdateEventArgs e)
+        {
+            //Element addition is not handled by this class.
+            if (e.Operation == ElementUpdateEventArgs.UpdateType.Added)
+                return;
+
+            if (!e.Elements.Any())
+                return;
+
+            bool dynamoTransaction = e.Transactions.Contains(TransactionWrapper.TransactionName);
+
+            var nodes = ElementBinder.GetNodesFromElementIds(
+                e.Elements,
+                CurrentWorkspace,
+                EngineController);
+            foreach (var node in nodes)
+            {
+                //Don't re-execute the element construction node, if 
+                //this element is modified due to a Dynamo transaction.
+                if (dynamoTransaction && IsConstructorNode(node)) continue;
+
+                node.OnNodeModified(forceExecute: true);
+            }
+        }
+
+        private bool IsConstructorNode(NodeModel node)
+        {
+            var func = node as DSFunction;
+            if (func == null) return false;
+
+            return func.Controller.Definition.Type == Engine.FunctionType.Constructor;
+        }
+
+        #endregion
+
+        protected override void OpenFileImpl(OpenFileCommand command)
+        {
+            // MAGN-9824 changed file open to be executed right away instead of queue up.
+            // This is to make sure DynamoRevit is consistent with DynamoStudio on file open.
+            base.OpenFileImpl(command);
+        }
+
+    }
+}

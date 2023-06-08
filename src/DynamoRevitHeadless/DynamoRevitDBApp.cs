@@ -162,11 +162,11 @@ namespace DynamoRevitHeadless
             e.Succeeded = true;
             var app = e.DesignAutomationData.RevitApp;
             Console.WriteLine("Preparing Dynamo model.");
-            var da = new Dynamo.Applications.DynamoRevitHeadless();
-            if(da.PrepareModel(app))
+            var rda = new Dynamo.Applications.RDADynamo();
+            if(rda.PrepareModel(app))
             {
                 Console.WriteLine("Done. Starting graph execution.");
-                da.ExecuteWorkspace(Path.Combine(root, "graph.dyn"));
+                rda.ExecuteWorkspace(Path.Combine(root, "graph.dyn"));
                 Console.WriteLine("Finished. Graph ran to completion.");
             }
             else

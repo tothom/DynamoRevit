@@ -775,6 +775,7 @@ namespace Revit.Elements.Views
                     }
                     if(newSheet == null)
                     {
+#if RDA
                         foreach (var id in elementIds)
                         {
                             if (!RevitServicesUI.Persistence.UIDocumentManager.Instance.IsViewSafeToDelete(id))
@@ -782,6 +783,7 @@ namespace Revit.Elements.Views
                                 throw new InvalidOperationException(string.Format(Properties.Resources.CantCloseLastOpenView, id.ToString()));
                             }
                         }
+#endif
                         Document.Delete(elementIds);
                     }                    
                 }
@@ -836,7 +838,7 @@ namespace Revit.Elements.Views
             return newSheet;
         }
 
-        #endregion
+#endregion
 
         #region Internal static constructors
 

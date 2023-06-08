@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)DynamoRevitInternalNodes.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)JournalNodeKeys.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RevitPathResolver.cs" />
   </ItemGroup>
 </Project>

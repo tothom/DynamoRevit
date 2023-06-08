@@ -2,11 +2,11 @@
 
 namespace Dynamo.Applications
 {
-    public class HeadlessSchedulerThread : ISchedulerThread
+    public class RDASchedulerThread : ISchedulerThread
     {
         private IScheduler scheduler;
 
-        public HeadlessSchedulerThread() { }
+        public RDASchedulerThread() { }
 
         public void Initialize(IScheduler owningScheduler)
         {

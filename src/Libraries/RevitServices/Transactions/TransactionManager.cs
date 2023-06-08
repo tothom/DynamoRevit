@@ -9,6 +9,7 @@ namespace RevitServices.Transactions
     public class TransactionManager
     {
         public static event Action<string> OnLog;
+        public static event Action TransactionEnded;
 
         internal static void Log(string obj)
         {
@@ -147,6 +148,11 @@ namespace RevitServices.Transactions
         {
             //Hand off the behaviour to the strategy
             Strategy.ForceCloseTransaction(handle);
+        }
+
+        public void OnTransactionEnded()
+        {
+            TransactionEnded?.Invoke();
         }
 
         /// <summary>

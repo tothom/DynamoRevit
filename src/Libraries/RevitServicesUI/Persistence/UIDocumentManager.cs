@@ -4,6 +4,7 @@ using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using RevitServices.Persistence;
+using RevitServices.Transactions;
 
 namespace RevitServicesUI.Persistence
 {
@@ -37,6 +38,7 @@ namespace RevitServicesUI.Persistence
         private UIDocumentManager()
         {
             dbInstance = DocumentManager.Instance;
+            TransactionManager.TransactionEnded += () => RefreshActiveView();
         }
 
         /// <summary>

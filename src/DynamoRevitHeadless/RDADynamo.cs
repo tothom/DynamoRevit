@@ -18,7 +18,7 @@ using DBApp = DynamoRevitHeadless.DynamoRevitDBApp;
 
 namespace Dynamo.Applications
 {
-    public class DynamoRevitHeadless
+    public class RDADynamo
     {
         private static List<Action> idleActions;
         private static bool handledCrash;
@@ -28,14 +28,14 @@ namespace Dynamo.Applications
         /// <summary>
         /// Get or Set the current RevitDynamoModel available in Revit context
         /// </summary>
-        public static RevitDynamoModel RevitDynamoModel { get; set; }
+        public static RDADynamoModel RevitDynamoModel { get; set; }
 
         /// <summary>
         /// Get or Set the current DynamoViewModel available in Revit context
         /// </summary>
         //public static DynamoViewModel RevitDynamoViewModel { get; private set; }
 
-        static DynamoRevitHeadless()
+        static RDADynamo()
         {
             idleActions = new List<Action>();
             RevitDynamoModel = null;
@@ -69,14 +69,14 @@ namespace Dynamo.Applications
                 //unsubscribe to the assembly load
                 AppDomain.CurrentDomain.AssemblyLoad -= AssemblyLoad;
 
+                RevitDynamoModel.HandlePostInitialization();
+
                 return true;
             }
             catch (Exception ex)
             {
                 // notify instrumentation
                 Logging.Analytics.TrackException(ex, true);
-
-                DynamoRevitApp.DynamoButtonEnabled = true;
 
                 //If for some reason Dynamo has crashed while startup make sure the Dynamo Model is properly shutdown.
                 if (RevitDynamoModel != null)
@@ -133,7 +133,7 @@ namespace Dynamo.Applications
             }
         }
 
-        private static RevitDynamoModel InitializeCoreModel(Autodesk.Revit.ApplicationServices.Application app)
+        private static RDADynamoModel InitializeCoreModel(Autodesk.Revit.ApplicationServices.Application app)
         {
             // Temporary fix to pre-load DLLs that were also referenced in Revit folder. 
             // To do: Need to align with Revit when provided a chance.
@@ -141,9 +141,6 @@ namespace Dynamo.Applications
             var corePath = DBApp.DynamoCorePath;
             var dynamoRevitExePath = Assembly.GetExecutingAssembly().Location;
             var dynamoRevitRoot = Path.GetDirectoryName(dynamoRevitExePath);// ...\Revit_xxxx\ folder
-
-            // get Dynamo Revit Version
-            var dynRevitVersion = Assembly.GetExecutingAssembly().GetName().Version;
 
             var userDataFolder = Path.Combine(Environment.GetFolderPath(
                 Environment.SpecialFolder.ApplicationData),
@@ -158,18 +155,17 @@ namespace Dynamo.Applications
 
             DocumentManager.Instance.PrepareForAutomation(app);
 
-            return RevitDynamoModel.Start(
-            new RevitDynamoModel.RevitStartConfiguration()
+            return RDADynamoModel.Start(
+            new RDADynamoModel.RevitStartConfiguration()
             {
                 DynamoCorePath = corePath,
                 DynamoHostPath = dynamoRevitRoot,
                 GeometryFactoryPath = GetGeometryFactoryPath(corePath, loadedLibGVersion),
                 PathResolver = new RevitPathResolver(userDataFolder, commonDataFolder),
                 Context = GetRevitContext(app),
-                SchedulerThread = new HeadlessSchedulerThread(),
+                SchedulerThread = new RDASchedulerThread(),
                 StartInTestMode = false,
                 AuthProvider = new RevitOAuth2Provider(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher)),
-                ExternalCommandData = null,
                 UpdateManager = null,
                 ProcessMode = TaskProcessMode.Synchronous
             });

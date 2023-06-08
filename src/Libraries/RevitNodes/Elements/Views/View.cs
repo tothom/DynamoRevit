@@ -649,13 +649,15 @@ namespace Revit.Elements.Views
                         var param = newView.InternalView.get_Parameter(BuiltInParameter.VIEW_NAME);
                         param.Set(newViewName);
                     }
+#if RDA
                     if (viewElement != null)
                     {
                         if(!RevitServicesUI.Persistence.UIDocumentManager.Instance.IsViewSafeToDelete(viewElement.Id))
                         {
                             throw new InvalidOperationException(string.Format(Properties.Resources.CantCloseLastOpenView, viewElement.ToString()));
                         }
-                    }                    
+                    }
+#endif
                 }                
 
                 ElementBinder.CleanupAndSetElementForTrace(Document, newView.InternalElement);
@@ -695,7 +697,7 @@ namespace Revit.Elements.Views
             return IsUnique;
         }
 
-        #endregion
+#endregion
 
         #region CropBox
 

@@ -35,7 +35,7 @@
   <ItemGroup>
     <Reference Include="DesignAutomationBridge, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Autodesk.Forge.DesignAutomation.Revit.2024.0.2\lib\net48\DesignAutomationBridge.dll</HintPath>
-      <Private>True</Private>
+      <Private>False</Private>
     </Reference>
     <Reference Include="DynamoApplications">
       <HintPath>..\packages\DynamoVisualProgramming.Core\lib\net48\DynamoApplications.dll</HintPath>
@@ -57,6 +57,11 @@
       <HintPath>..\packages\dynamovisualprogramming.core\lib\net48\DynamoShapeManager.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="DynamoUtilities, Version=2.17.0.3141, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\DynamoVisualProgramming.Core\lib\net48\DynamoUtilities.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Greg">
       <HintPath>..\packages\greg\lib\net48\Greg.dll</HintPath>
       <Private>False</Private>
@@ -67,6 +72,15 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ProtoCore, Version=2.17.0.3141, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\DynamoVisualProgramming.Core\lib\net48\ProtoCore.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Python.Runtime">
+      <HintPath>..\packages\pythonnet\lib\net40\Python.Runtime.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -84,21 +98,22 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DynamoRevitHeadless.cs" />
+    <Compile Include="RDADynamo.cs" />
     <Compile Include="DynamoRevitDBApp.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="HeadlessSchedulerThread.cs" />
+    <Compile Include="RDASchedulerThread.cs" />
+    <Compile Include="RDADynamoModel.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DynamoRevit\DynamoRevit.csproj">
-      <Project>{FD56AE51-739E-4893-8DE4-925D60C7097C}</Project>
-      <Name>DynamoRevit</Name>
-      <Private>True</Private>
+    <ProjectReference Include="..\Libraries\RevitNodes\RevitNodes.csproj">
+      <Project>{0bc2a611-bd0e-4fcc-a1de-81f14ed369b2}</Project>
+      <Name>RevitNodes</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Libraries\RevitServices\RevitServices.csproj">
       <Project>{e4701f9e-41ab-4044-8166-85d924feb632}</Project>
       <Name>RevitServices</Name>
-      <Private>True</Private>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -106,4 +121,8 @@
   </ItemGroup>
   <Import Project="..\DynamoRevitShared\DynamoRevitShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /y "$(SolutionDir)packages\GregRevitAuth\lib\net48\GregRevitAuth.dll" "$(TargetDir)"
+copy /y "$(SolutionDir)packages\Autodesk.Forge.DesignAutomation.Revit.2024.0.2\lib\net48\DesignAutomationBridge.dll" "$(TargetDir)"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
