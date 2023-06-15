@@ -21,7 +21,9 @@ namespace Dynamo.Wpf.Nodes.Revit
         public void CustomizeView(ElementSelection<Element> model, NodeView nodeView)
         {
             base.CustomizeView(model, nodeView);
+#if !RDA
             model.RevitDynamoModel = nodeView.ViewModel.DynamoViewModel.Model as RevitDynamoModel;
+#endif
         }
     }
 
@@ -33,7 +35,9 @@ namespace Dynamo.Wpf.Nodes.Revit
         public void CustomizeView(ElementSelection<DividedSurface> model, NodeView nodeView)
         {
             base.CustomizeView(model, nodeView);
+#if !RDA
             model.RevitDynamoModel = nodeView.ViewModel.DynamoViewModel.Model as RevitDynamoModel;
+#endif
         }
     }
 
@@ -45,7 +49,9 @@ namespace Dynamo.Wpf.Nodes.Revit
         public void CustomizeView(ReferenceSelection model, NodeView nodeView)
         {
             base.CustomizeView(model, nodeView);
+#if !RDA
             model.RevitDynamoModel = nodeView.ViewModel.DynamoViewModel.Model as RevitDynamoModel;
+#endif
         }
     }
 

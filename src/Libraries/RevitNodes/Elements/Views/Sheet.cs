@@ -775,7 +775,7 @@ namespace Revit.Elements.Views
                     }
                     if(newSheet == null)
                     {
-#if RDA
+#if !RDA
                         foreach (var id in elementIds)
                         {
                             if (!RevitServicesUI.Persistence.UIDocumentManager.Instance.IsViewSafeToDelete(id))

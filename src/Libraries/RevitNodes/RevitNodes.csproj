@@ -40,6 +40,9 @@
     <NoWarn>1591</NoWarn>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug_RDA|AnyCPU'">
+    <OutputPath>..\..\..\bin\AnyCPU\Debug\Revit 2024\</OutputPath>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="DynamoServices">
       <HintPath>$(PACKAGESPATH)\DynamoVisualProgramming.DynamoServices\lib\netstandard2.0\DynamoServices.dll</HintPath>
@@ -219,6 +222,11 @@
     <Compile Include="Transaction\Transaction.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\RevitServicesUI\RevitServicesUI.csproj" Condition=" '$(Configuration)' != 'Debug_RDA' ">
+      <Project>{35879a4a-ade4-4bbc-a79e-5e3b6f145c1e}</Project>
+      <Name>RevitServicesUI</Name>
+      <Private>False</Private>
+    </ProjectReference>
     <Reference Include="DynamoCore">
       <HintPath>$(PACKAGESPATH)\DynamoVisualProgramming.Core\lib\net48\DynamoCore.dll</HintPath>
       <Private>False</Private>
@@ -256,13 +264,18 @@
     <ProjectReference Include="..\RevitServices\RevitServices.csproj">
       <Project>{e4701f9e-41ab-4044-8166-85d924feb632}</Project>
       <Name>RevitServices</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>copy /Y "$(ProjectDir)*_DynamoCustomization.xml" "$(OutputPath)"
-    copy /Y "$(ProjectDir)*.Migrations.xml" "$(OutputPath)"</PreBuildEvent>
+    <PreBuildEvent>REM copy /Y "$(ProjectDir)*_DynamoCustomization.xml" "$(OutputPath)"
+REM copy /Y "$(ProjectDir)*.Migrations.xml" "$(OutputPath)"</PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

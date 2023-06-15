@@ -649,7 +649,7 @@ namespace Revit.Elements.Views
                         var param = newView.InternalView.get_Parameter(BuiltInParameter.VIEW_NAME);
                         param.Set(newViewName);
                     }
-#if RDA
+#if !RDA
                     if (viewElement != null)
                     {
                         if(!RevitServicesUI.Persistence.UIDocumentManager.Instance.IsViewSafeToDelete(viewElement.Id))

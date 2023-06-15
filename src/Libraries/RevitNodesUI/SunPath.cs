@@ -2,17 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-
-using Autodesk.Revit.UI.Events;
-
-using Dynamo.Applications;
 using Dynamo.Applications.Models;
 using Dynamo.Graph.Nodes;
-
 using ProtoCore.AST.AssociativeAST;
 using RevitServices.Elements;
 using RevitServices.Persistence;
 using BuiltinNodeCategories = Revit.Elements.BuiltinNodeCategories;
+
+#if !RDA
+using Autodesk.Revit.UI.Events;
+using Dynamo.Applications;
+#endif
 
 namespace DSRevitNodesUI
 {
@@ -31,28 +31,36 @@ namespace DSRevitNodesUI
             RegisterAllPorts();
 
             RevitServicesUpdater.Instance.ElementsUpdated += Updater_ElementsUpdated;
+#if RDA
+            settingsID = DocumentManager.Instance.CurrentDBDocument.ActiveView.SunAndShadowSettings.UniqueId;
+#else
             DynamoRevitApp.UIEventHandlerProxy.ViewActivated += CurrentUIApplication_ViewActivated;
 
             DynamoRevitApp.AddIdleAction(() => CurrentUIApplicationOnViewActivated());
+#endif
         }
 
         [JsonConstructor]
         public SunSettings(IEnumerable<PortModel> inPorts, IEnumerable<PortModel> outPorts) : base(inPorts, outPorts)
         {
             RevitServicesUpdater.Instance.ElementsUpdated += Updater_ElementsUpdated;
+#if !RDA
             DynamoRevitApp.UIEventHandlerProxy.ViewActivated += CurrentUIApplication_ViewActivated;
 
             DynamoRevitApp.AddIdleAction(() => CurrentUIApplicationOnViewActivated());
+#endif
         }
 
         public override void Dispose()
         {
             RevitServicesUpdater.Instance.ElementsUpdated -= Updater_ElementsUpdated;
+#if !RDA
             DynamoRevitApp.UIEventHandlerProxy.ViewActivated -= CurrentUIApplication_ViewActivated;
-
+#endif
             base.Dispose();
         }
 
+#if !RDA
         private void CurrentUIApplication_ViewActivated(object sender, ViewActivatedEventArgs e)
         {
             CurrentUIApplicationOnViewActivated();
@@ -64,6 +72,7 @@ namespace DSRevitNodesUI
                 DocumentManager.Instance.CurrentDBDocument.ActiveView.SunAndShadowSettings.UniqueId;
             OnNodeModified(forceExecute:true);
         }
+#endif
 
         private void Updater_ElementsUpdated(object sender, ElementUpdateEventArgs e)
         {

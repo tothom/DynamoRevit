@@ -48,11 +48,12 @@ namespace DSRevitNodesUI
             Location.Name = string.Empty;
             
             ArgumentLacing = LacingStrategy.Disabled;
-
-            DynamoRevitApp.EventHandlerProxy.DocumentOpened += model_RevitDocumentChanged;
+#if RDA
             RevitServicesUpdater.Instance.ElementsUpdated += RevitServicesUpdater_ElementsUpdated;
-            
+#else
+            DynamoRevitApp.EventHandlerProxy.DocumentOpened += model_RevitDocumentChanged;
             DynamoRevitApp.AddIdleAction(() => Update());
+#endif
         }
 
         [JsonConstructor]
@@ -63,17 +64,21 @@ namespace DSRevitNodesUI
 
             ArgumentLacing = LacingStrategy.Disabled;
 
-            DynamoRevitApp.EventHandlerProxy.DocumentOpened += model_RevitDocumentChanged;
+#if RDA
             RevitServicesUpdater.Instance.ElementsUpdated += RevitServicesUpdater_ElementsUpdated;
-
+#else
+            DynamoRevitApp.EventHandlerProxy.DocumentOpened += model_RevitDocumentChanged;
             DynamoRevitApp.AddIdleAction(() => Update());
+#endif
         }
 
         #region public methods
 
         public override void Dispose()
         {
+#if !RDA
             DynamoRevitApp.EventHandlerProxy.DocumentOpened -= model_RevitDocumentChanged;
+#endif
             RevitServicesUpdater.Instance.ElementsUpdated -= RevitServicesUpdater_ElementsUpdated;
             base.Dispose();
         }
@@ -107,7 +112,7 @@ namespace DSRevitNodesUI
                 Location.Longitude);
         }
         
-        #endregion
+#endregion
 
         #region private methods
 

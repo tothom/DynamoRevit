@@ -6,22 +6,18 @@ using System.Linq;
 using Autodesk.DesignScript.Runtime;
 using Autodesk.Revit.DB;
 
-using Dynamo.Applications;
-
 using Dynamo.Models;
 using ProtoCore.AST.AssociativeAST;
 
 using Revit.Elements;
 using Revit.GeometryConversion;
 using Revit.GeometryObjects;
-using Revit.Interactivity;
 
 using RevitServices.Elements;
 using RevitServices.Persistence;
 
 using DividedSurface = Autodesk.Revit.DB.DividedSurface;
 using Element = Autodesk.Revit.DB.Element;
-using RevitDynamoModel = Dynamo.Applications.Models.RevitDynamoModel;
 using Point = Autodesk.DesignScript.Geometry.Point;
 using String = System.String;
 using UV = Autodesk.DesignScript.Geometry.UV;
@@ -33,6 +29,12 @@ using RevitServices.Transactions;
 
 using Newtonsoft.Json;
 
+#if !RDA
+using Dynamo.Applications;
+using Revit.Interactivity;
+using RevitDynamoModel = Dynamo.Applications.Models.RevitDynamoModel;
+#endif
+
 namespace Dynamo.Nodes
 {
 
@@ -41,10 +43,10 @@ namespace Dynamo.Nodes
     public abstract class RevitSelection<TSelection, TResult> : SelectionBase<TSelection, TResult>
     {
         protected Document SelectionOwner { get; private set; }
-        private RevitDynamoModel revitDynamoModel;
 
         #region public properties
-
+#if !RDA
+        private RevitDynamoModel revitDynamoModel;
         public RevitDynamoModel RevitDynamoModel
         {
             get
@@ -127,6 +129,7 @@ namespace Dynamo.Nodes
                 }   
             }
         }
+#endif
 
         /// <summary>
         /// Handler for the RevitDynamoModel's PropertyChanged event.
@@ -147,7 +150,7 @@ namespace Dynamo.Nodes
         }
      
 
-        #endregion
+#endregion
 
         #region protected constructors
 
@@ -156,7 +159,9 @@ namespace Dynamo.Nodes
             : base(selectionType, selectionObjectType, message, prefix)
         {
             RevitServicesUpdater.Instance.ElementsUpdated += Updater_ElementsUpdated;
+#if !RDA
             DynamoRevitApp.EventHandlerProxy.DocumentOpened += Controller_RevitDocumentChanged;
+#endif
         }
 
         [JsonConstructor]
@@ -166,7 +171,9 @@ namespace Dynamo.Nodes
             : base(selectionType, selectionObjectType, message, prefix, selectionIdentifier, inPorts, outPorts)
         {
             RevitServicesUpdater.Instance.ElementsUpdated += Updater_ElementsUpdated;
+#if !RDA
             DynamoRevitApp.EventHandlerProxy.DocumentOpened += Controller_RevitDocumentChanged;
+#endif
         }
 
         #endregion
@@ -187,6 +194,7 @@ namespace Dynamo.Nodes
             base.Dispose();
 
             RevitServicesUpdater.Instance.ElementsUpdated -= Updater_ElementsUpdated;
+#if !RDA
             DynamoRevitApp.EventHandlerProxy.DocumentOpened -= Controller_RevitDocumentChanged;
 
             if (revitDynamoModel != null)
@@ -197,6 +205,7 @@ namespace Dynamo.Nodes
                     hwm.RunSettings.PropertyChanged -= revMod_PropertyChanged;
                 }
             }
+#endif
          }
 
         public override void UpdateSelection(IEnumerable<TSelection> rawSelection)
@@ -205,7 +214,7 @@ namespace Dynamo.Nodes
             SelectionOwner = DocumentManager.Instance.CurrentDBDocument;
         }
 
-        #endregion
+#endregion
 
         #region protected methods
         private void Updater_ElementsUpdated(object sender, ElementUpdateEventArgs e)
@@ -214,6 +223,7 @@ namespace Dynamo.Nodes
             {
                 case ElementUpdateEventArgs.UpdateType.Added:
                     break;
+#if !RDA
                 case ElementUpdateEventArgs.UpdateType.Modified:
                     bool dynamoTransaction = e.Transactions.Contains(TransactionWrapper.TransactionName);
                     HomeWorkspaceModel hwm = null;
@@ -226,6 +236,7 @@ namespace Dynamo.Nodes
                         Updater_ElementsModified(e.GetUniqueIds());
                     }
                     break;
+#endif
                 case ElementUpdateEventArgs.UpdateType.Deleted:
                     Updater_ElementsDeleted(e.RevitDocument, e.Elements);
                     break;
@@ -239,10 +250,10 @@ namespace Dynamo.Nodes
 
         protected virtual void Updater_ElementsModified(IEnumerable<string> updated) { }
 
-        #endregion
+#endregion
     }
 
-    #endregion
+#endregion
 
     #region ElementSelection
 
@@ -268,7 +279,11 @@ namespace Dynamo.Nodes
 
         public override IModelSelectionHelper<TSelection> SelectionHelper
         {
+#if RDA
+            get => null;
+#else
             get { return RevitElementSelectionHelper<TSelection>.Instance; }
+#endif
         }
 
         public override IEnumerable<AssociativeNode> BuildOutputAst(
@@ -401,7 +416,7 @@ namespace Dynamo.Nodes
         }
     }
 
-    #endregion
+#endregion
 
     #region ReferenceSelection
 
@@ -422,7 +437,11 @@ namespace Dynamo.Nodes
 
         public override IModelSelectionHelper<Reference> SelectionHelper
         {
+#if RDA
+            get => null;
+#else
             get { return RevitReferenceSelectionHelper.Instance; }
+#endif
         }
 
         public override IEnumerable<AssociativeNode> BuildOutputAst(
@@ -564,7 +583,7 @@ namespace Dynamo.Nodes
         }
     }
 
-    #endregion
+#endregion
 
     [NodeName("Select Analysis Results"), NodeCategory(Revit.Elements.BuiltinNodeCategories.REVIT_SELECTION),
      NodeDescription("SelectAnalysisResultsDescription", typeof(DSRevitNodesUI.Properties.Resources)), IsDesignScriptCompatible,
@@ -923,11 +942,13 @@ namespace Dynamo.Nodes
         // Revit, this will cause the sub-elements to be modified.
         protected override IEnumerable<Element> ExtractSelectionResults(DividedSurface selection)
         {
-            IEnumerable<Element> result;
+            IEnumerable<Element> result = new List<Element>();
             try
             {
+#if !RDA
                 result = RevitElementSelectionHelper<DividedSurface>.GetFamilyInstancesFromDividedSurface(
                             selection).ToList();
+#endif
             }
             catch
             {

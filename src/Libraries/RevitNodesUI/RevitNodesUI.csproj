@@ -34,6 +34,10 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug_RDA|AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>..\..\..\bin\AnyCPU\Debug\Revit 2024\</OutputPath>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="DynamoUtilities">
       <HintPath>$(PACKAGESPATH)\DynamoVisualProgramming.Core\lib\net48\DynamoUtilities.dll</HintPath>
@@ -57,7 +61,7 @@
       <HintPath>$(REVITAPI)\RevitAPI.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="RevitAPIUI">
+    <Reference Include="RevitAPIUI" Condition=" '$(Configuration)' != 'Debug_RDA' ">
       <HintPath>$(REVITAPI)\RevitAPIUI.dll</HintPath>
       <Private>False</Private>
     </Reference>
@@ -90,14 +94,15 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.en-US.resx</DependentUpon>
     </Compile>
+    <Compile Include="RevitNodeModel.cs" Condition=" '$(Configuration)' == 'Debug_RDA' "/>
     <Compile Include="RevitTypes.cs" />
-    <Compile Include="SelectionCombo.cs" />
+    <Compile Include="SelectionCombo.cs" Condition=" '$(Configuration)' != 'Debug_RDA' "/>
     <Compile Include="SelectionNodeViewCustomizations.cs" />
     <Compile Include="SiteLocation.cs" />
     <Compile Include="RevitDropDown.cs" />
     <Compile Include="Selection.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RevitSelectionHelper.cs" />
+    <Compile Include="RevitSelectionHelper.cs" Condition=" '$(Configuration)' != 'Debug_RDA' "/>
     <Compile Include="SunPath.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -145,12 +150,12 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\DynamoRevit\DynamoRevit.csproj">
+    <ProjectReference Include="..\..\DynamoRevit\DynamoRevit.csproj" Condition=" '$(Configuration)' != 'Debug_RDA' ">
       <Project>{fd56ae51-739e-4893-8de4-925d60c7097c}</Project>
       <Name>DynamoRevit</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\RevitServicesUI\RevitServicesUI.csproj">
+    <ProjectReference Include="..\RevitServicesUI\RevitServicesUI.csproj" Condition=" '$(Configuration)' != 'Debug_RDA' ">
       <Project>{35879a4a-ade4-4bbc-a79e-5e3b6f145c1e}</Project>
       <Name>RevitServicesUI</Name>
     </ProjectReference>
