@@ -174,6 +174,7 @@ namespace DynamoRevitHeadless
             else
             {
                 Console.WriteLine("Could not prepare Dynamo model.");
+                File.WriteAllText("result.txt", "failed..." + Environment.NewLine + msg);
             }
         }
 

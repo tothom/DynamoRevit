@@ -48,9 +48,9 @@ namespace DSRevitNodesUI
             Location.Name = string.Empty;
             
             ArgumentLacing = LacingStrategy.Disabled;
-#if RDA
+
             RevitServicesUpdater.Instance.ElementsUpdated += RevitServicesUpdater_ElementsUpdated;
-#else
+#if !RDA
             DynamoRevitApp.EventHandlerProxy.DocumentOpened += model_RevitDocumentChanged;
             DynamoRevitApp.AddIdleAction(() => Update());
 #endif
@@ -64,9 +64,8 @@ namespace DSRevitNodesUI
 
             ArgumentLacing = LacingStrategy.Disabled;
 
-#if RDA
             RevitServicesUpdater.Instance.ElementsUpdated += RevitServicesUpdater_ElementsUpdated;
-#else
+#if !RDA
             DynamoRevitApp.EventHandlerProxy.DocumentOpened += model_RevitDocumentChanged;
             DynamoRevitApp.AddIdleAction(() => Update());
 #endif
