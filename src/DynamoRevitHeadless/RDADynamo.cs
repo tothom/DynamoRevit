@@ -44,7 +44,7 @@ namespace Dynamo.Applications
             preLoadExceptions.AddRange(StartupUtils.CheckAssemblyForVersionMismatches(args.LoadedAssembly));
         }
 
-        public bool PrepareModel(Autodesk.Revit.ApplicationServices.Application app, out string msg)
+        public bool PrepareModel(Autodesk.Revit.ApplicationServices.Application app, string workDir, out string msg)
         {
             var startupTimer = Stopwatch.StartNew();
 
@@ -57,7 +57,7 @@ namespace Dynamo.Applications
                 UpdateSystemPathForProcess();
 
                 // create core data models
-                RevitDynamoModel = InitializeCoreModel(app);
+                RevitDynamoModel = InitializeCoreModel(app, workDir);
                 RevitDynamoModel.UpdateManager.RegisterExternalApplicationProcessId(Process.GetCurrentProcess().Id);
                 RevitDynamoModel.Logger.Log("SYSTEM", string.Format("Environment Path:{0}", Environment.GetEnvironmentVariable("PATH")));
 
@@ -65,7 +65,7 @@ namespace Dynamo.Applications
                 AppDomain.CurrentDomain.AssemblyLoad -= AssemblyLoad;
 
                 RevitDynamoModel.HandlePostInitialization();
-                msg = $"Loaded in {startupTimer.Elapsed.TotalSeconds} sec.";
+                msg = $"<<!>> Loaded in {startupTimer.Elapsed.TotalSeconds} sec.";
                 return true;
             }
             catch (Exception ex)
@@ -128,7 +128,7 @@ namespace Dynamo.Applications
             }
         }
 
-        private static RDADynamoModel InitializeCoreModel(Autodesk.Revit.ApplicationServices.Application app)
+        private static RDADynamoModel InitializeCoreModel(Autodesk.Revit.ApplicationServices.Application app, string workDir)
         {
             // Temporary fix to pre-load DLLs that were also referenced in Revit folder. 
             // To do: Need to align with Revit when provided a chance.
@@ -137,19 +137,23 @@ namespace Dynamo.Applications
             var dynamoRevitExePath = Assembly.GetExecutingAssembly().Location;
             var dynamoRevitRoot = Path.GetDirectoryName(dynamoRevitExePath);// ...\Revit_xxxx\ folder
 
-            var userDataFolder = Path.Combine(Environment.GetFolderPath(
-                Environment.SpecialFolder.ApplicationData),
-                "Dynamo", "Dynamo Revit");
-            var commonDataFolder = Path.Combine(Environment.GetFolderPath(
-                Environment.SpecialFolder.CommonApplicationData),
-                "Autodesk", "RVT " + app.VersionNumber, "Dynamo");
+            //var userDataFolder = Path.Combine(Environment.GetFolderPath(
+            //    Environment.SpecialFolder.ApplicationData),
+            //    "Dynamo", "Dynamo Revit");
+            //var commonDataFolder = Path.Combine(Environment.GetFolderPath(
+            //    Environment.SpecialFolder.CommonApplicationData),
+            //    "Autodesk", "RVT " + app.VersionNumber, "Dynamo");
+            var userDataFolder = Path.Combine(workDir, "Dynamo Revit");
+            var commonDataFolder = Path.Combine(workDir, "Dynamo");
 
             // when Dynamo runs on top of Revit we must load the same version of ASM as revit
             // so tell Dynamo core we've loaded that version.
-            var loadedLibGVersion = PreloadAsmFromRevit();
+            var loadedLibGVersion = PreloadAsmFromRevit(app.VersionNumber);
 
             DocumentManager.Instance.PrepareForAutomation(app);
-
+            
+            Logging.Analytics.DisableAnalytics = true;
+            
             return RDADynamoModel.Start(
             new RDADynamoModel.RevitStartConfiguration()
             {
@@ -162,7 +166,7 @@ namespace Dynamo.Applications
                 StartInTestMode = false,
                 AuthProvider = new RevitOAuth2Provider(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher)),
                 UpdateManager = null,
-                ProcessMode = TaskProcessMode.Synchronous
+                ProcessMode = TaskProcessMode.Synchronous,
             });
         }
 
@@ -172,17 +176,13 @@ namespace Dynamo.Applications
             return r.Replace(app.VersionName, "");
         }
 
-        internal static Version PreloadAsmFromRevit()
+        internal static Version PreloadAsmFromRevit(string verNum)
         {
-            var asmLocation = AppDomain.CurrentDomain.BaseDirectory;
-            if (string.IsNullOrWhiteSpace(asmLocation))
+            var asmLocation = $@"C:\Program Files\Common Files\Autodesk Shared\Revit Interoperability {verNum}\Rx";
+            if (!Directory.Exists(asmLocation))
             {
-                if (Directory.Exists(@"C:\Revit2024\"))
-                    asmLocation = @"C:\Revit2024\";
-                else if (Directory.Exists(@"T:\Aces\AcesRoot\24.0\coreEngine\Exe\"))
-                    asmLocation = @"T:\Aces\AcesRoot\24.0\coreEngine\Exe\";
+                throw new Exception($"Can't find ASM location at {asmLocation}");
             }
-            Console.WriteLine($"Possible ASM location is {asmLocation}");
 
             Version libGVersion = findRevitASMVersion(asmLocation);
             var dynCorePath = DBApp.DynamoCorePath;
@@ -280,7 +280,7 @@ namespace Dynamo.Applications
                 }
                 catch
                 {
-                    Console.WriteLine("Exception while trying to update nodes with new values");
+                    Console.WriteLine("<<!>> Exception while trying to update nodes with new values");
                 }
             }
 

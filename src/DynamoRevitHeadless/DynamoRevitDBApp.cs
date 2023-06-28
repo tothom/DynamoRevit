@@ -116,7 +116,7 @@ namespace DynamoRevitHeadless
 
         public ExternalDBApplicationResult OnStartup(ControlledApplication application)
         {
-            Console.WriteLine("Starting to load D4DA");
+            Console.WriteLine("<<!>> Starting to load D4DA");
             try
             {
                 if (!TryResolveDynamoCore(application))
@@ -135,7 +135,7 @@ namespace DynamoRevitHeadless
 
                 DesignAutomationBridge.DesignAutomationReadyEvent += HandleDesignAutomationReadyEvent;
 
-                Console.WriteLine("D4DA Loaded");
+                Console.WriteLine("<<!>> D4DA Loaded");
 
                 return ExternalDBApplicationResult.Succeeded;
             }
@@ -155,25 +155,38 @@ namespace DynamoRevitHeadless
 
         public void HandleDesignAutomationReadyEvent(object sender, DesignAutomationReadyEventArgs e)
         {
-            Console.WriteLine("DA event raised.");
+            Console.WriteLine("<<!>> DA event raised.");
 
             var root = Path.GetDirectoryName(e.DesignAutomationData.FilePath);
-            Console.WriteLine($"root folder is '{root}'");
+            var dynTempDir = Path.Combine(root, "dyn_tmp");
+            Console.WriteLine($"<<!>> root folder is '{root}'");
             e.Succeeded = true;
             var app = e.DesignAutomationData.RevitApp;
-            Console.WriteLine("Preparing Dynamo model.");
+            Console.WriteLine("<<!>> Preparing Dynamo model.");
             var rda = new Dynamo.Applications.RDADynamo();
-            var loaded = rda.PrepareModel(app, out var msg);
+            var loaded = rda.PrepareModel(app, dynTempDir, out var msg);
             Console.WriteLine(msg);
             if (loaded)
             {
-                Console.WriteLine("Starting graph execution.");
+                Console.WriteLine("<<!>> Starting graph execution.");
                 rda.ExecuteWorkspace(Path.Combine(root, "graph.dyn"));
-                Console.WriteLine("Finished. Graph ran to completion.");
+                Console.WriteLine("<<!>> Finished. Graph ran to completion.");
+                
+                //try to return the graph result
+                var result = Path.Combine(root, "result.txt");
+                var resultUpload = Path.Combine(Directory.GetCurrentDirectory(), "result.txt");
+                if (File.Exists(result))
+                {
+                    File.Copy(result, resultUpload, true);
+                }
+                else
+                {
+                    File.WriteAllText("result.txt", "failed for unknown reasons");
+                }
             }
             else
             {
-                Console.WriteLine("Could not prepare Dynamo model.");
+                Console.WriteLine("<<!>> Could not prepare Dynamo model.");
                 File.WriteAllText("result.txt", "failed..." + Environment.NewLine + msg);
             }
         }
