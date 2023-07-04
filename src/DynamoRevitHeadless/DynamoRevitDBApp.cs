@@ -15,8 +15,16 @@ namespace DynamoRevitHeadless
 {
     [Transaction(TransactionMode.Manual),
         Regeneration(RegenerationOption.Manual)]
+    public class RunGraphEvents
+    {
+        public string GraphName;
+    }
+
     public class DynamoRevitDBApp : IExternalDBApplication
     {
+        public static Action<RunGraphEvents> RunDynamoGraph;
+        private Dynamo.Applications.RDADynamo Model;
+
         private static readonly string assemblyName = Assembly.GetExecutingAssembly().Location;
         public static ControlledApplication ControlledApplication;
         public static List<IUpdater> Updaters = new List<IUpdater>();
@@ -133,16 +141,38 @@ namespace DynamoRevitHeadless
 
                 _ = loadDependentComponents(); //(Dimitar) should we fail to load here if the internal method returns Failed?
 
+
                 DesignAutomationBridge.DesignAutomationReadyEvent += HandleDesignAutomationReadyEvent;
 
                 Console.WriteLine("<<!>> D4DA Loaded");
-
+                application.DocumentOpened += Application_DocumentOpened;
+                
                 return ExternalDBApplicationResult.Succeeded;
             }
             catch (Exception ex)
             {
                 return ExternalDBApplicationResult.Failed;
             }
+        }
+
+        private void Application_DocumentOpened(object sender, Autodesk.Revit.DB.Events.DocumentOpenedEventArgs e)
+        {
+            var app = sender as Application;
+            Console.WriteLine("<<!>> DA event raised.");
+
+            var root = Path.GetDirectoryName(e.Document.PathName);
+            var dynTempDir = Path.Combine(root, "dyn_tmp");
+            Console.WriteLine($"<<!>> root folder is '{root}'");
+            Console.WriteLine("<<!>> Preparing Dynamo model.");
+            Model = new Dynamo.Applications.RDADynamo();
+            var loaded = Model.PrepareModel(app, dynTempDir, out var msg);
+            Console.WriteLine(msg);
+            RunDynamoGraph += OnRunDynamoGraph;
+        }
+
+        private void OnRunDynamoGraph(RunGraphEvents events)
+        {
+            Model.ExecuteWorkspace(events.GraphName);
         }
 
         public ExternalDBApplicationResult OnShutdown(ControlledApplication application)
@@ -155,17 +185,7 @@ namespace DynamoRevitHeadless
 
         public void HandleDesignAutomationReadyEvent(object sender, DesignAutomationReadyEventArgs e)
         {
-            Console.WriteLine("<<!>> DA event raised.");
-
-            var root = Path.GetDirectoryName(e.DesignAutomationData.FilePath);
-            var dynTempDir = Path.Combine(root, "dyn_tmp");
-            Console.WriteLine($"<<!>> root folder is '{root}'");
-            e.Succeeded = true;
-            var app = e.DesignAutomationData.RevitApp;
-            Console.WriteLine("<<!>> Preparing Dynamo model.");
-            var rda = new Dynamo.Applications.RDADynamo();
-            var loaded = rda.PrepareModel(app, dynTempDir, out var msg);
-            Console.WriteLine(msg);
+            DynamoRevitDBApp.RunDynamoGraph(new RunGraphEvents() { GraphName = "myGraph.dyn" });
             if (loaded)
             {
                 Console.WriteLine("<<!>> Starting graph execution.");
