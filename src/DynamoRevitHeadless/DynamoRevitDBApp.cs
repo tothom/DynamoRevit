@@ -13,16 +13,24 @@ using DesignAutomationFramework;
 
 namespace DynamoRevitHeadless
 {
-    [Transaction(TransactionMode.Manual),
-        Regeneration(RegenerationOption.Manual)]
-    public class RunGraphEvents
+    public class RunGraphArgs
     {
         public string GraphName;
     }
 
+    public class GraphResultArgs
+    {
+        public string Result;
+    }
+
+
+    [Transaction(TransactionMode.Manual),
+        Regeneration(RegenerationOption.Manual)]
     public class DynamoRevitDBApp : IExternalDBApplication
     {
-        public static Action<RunGraphEvents> RunDynamoGraph;
+        public static Action<RunGraphArgs> RunDynamoGraph;
+        public static Action<GraphResultArgs> PassGraphResult;
+
         private Dynamo.Applications.RDADynamo Model;
 
         private static readonly string assemblyName = Assembly.GetExecutingAssembly().Location;
@@ -170,7 +178,7 @@ namespace DynamoRevitHeadless
             RunDynamoGraph += OnRunDynamoGraph;
         }
 
-        private void OnRunDynamoGraph(RunGraphEvents events)
+        private void OnRunDynamoGraph(RunGraphArgs events)
         {
             Model.ExecuteWorkspace(events.GraphName);
         }
@@ -185,30 +193,39 @@ namespace DynamoRevitHeadless
 
         public void HandleDesignAutomationReadyEvent(object sender, DesignAutomationReadyEventArgs e)
         {
-            DynamoRevitDBApp.RunDynamoGraph(new RunGraphEvents() { GraphName = "myGraph.dyn" });
-            if (loaded)
-            {
-                Console.WriteLine("<<!>> Starting graph execution.");
-                rda.ExecuteWorkspace(Path.Combine(root, "graph.dyn"));
-                Console.WriteLine("<<!>> Finished. Graph ran to completion.");
+            DynamoRevitDBApp.PassGraphResult += ProcessResult;
+            DynamoRevitDBApp.RunDynamoGraph(new RunGraphArgs() { GraphName = "myGraph.dyn" });
+            
+            //if (loaded)
+            //{
+            //    Console.WriteLine("<<!>> Starting graph execution.");
+            //    rda.ExecuteWorkspace(Path.Combine(root, "graph.dyn"));
+            //    Console.WriteLine("<<!>> Finished. Graph ran to completion.");
                 
-                //try to return the graph result
-                var result = Path.Combine(root, "result.txt");
-                var resultUpload = Path.Combine(Directory.GetCurrentDirectory(), "result.txt");
-                if (File.Exists(result))
-                {
-                    File.Copy(result, resultUpload, true);
-                }
-                else
-                {
-                    File.WriteAllText("result.txt", "failed for unknown reasons");
-                }
-            }
-            else
-            {
-                Console.WriteLine("<<!>> Could not prepare Dynamo model.");
-                File.WriteAllText("result.txt", "failed..." + Environment.NewLine + msg);
-            }
+            //    //try to return the graph result
+            //    var result = Path.Combine(root, "result.txt");
+            //    var resultUpload = Path.Combine(Directory.GetCurrentDirectory(), "result.txt");
+            //    if (File.Exists(result))
+            //    {
+            //        File.Copy(result, resultUpload, true);
+            //    }
+            //    else
+            //    {
+            //        File.WriteAllText("result.txt", "failed for unknown reasons");
+            //    }
+        //    }
+        //    else
+        //    {
+
+
+        //Console.WriteLine("<<!>> Could not prepare Dynamo model.");
+        //        File.WriteAllText("result.txt", "failed..." + Environment.NewLine + msg);
+        //    }
+        }
+
+        private void ProcessResult(GraphResultArgs result)
+        {
+            File.WriteAllText("result.txt", result.Result);
         }
 
         //no change
