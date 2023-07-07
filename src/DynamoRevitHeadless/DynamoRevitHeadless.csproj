@@ -101,6 +101,7 @@
     <Compile Include="RDADynamo.cs" />
     <Compile Include="DynamoRevitDBApp.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RDADynamoHelper.cs" />
     <Compile Include="RDASchedulerThread.cs" />
     <Compile Include="RDADynamoModel.cs" />
   </ItemGroup>
