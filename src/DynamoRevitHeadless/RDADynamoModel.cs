@@ -190,7 +190,7 @@ namespace Dynamo.Applications.Models
             SubscribeDocumentManagerEvents();
             SubscribeTransactionManagerEvents();
 
-            SetupPython();
+            SetupPython(configuration.PathResolver.CommonDataRootFolder);
         }
 
 
@@ -441,12 +441,16 @@ namespace Dynamo.Applications.Models
 
         private bool setupPython;
 
-        private void SetupPython()
+        private void SetupPython(string installPath)
         {
             if (setupPython) return;
 
             // Setup engines for all existing python engines
-            PythonEngineManager.Instance.AvailableEngines.ToList().ForEach(engine => SetupPythonEngine(engine));
+            PythonEngineManager.Instance.AvailableEngines.ToList().ForEach(
+                engine => {
+                    engine.InstallPath = installPath;
+                    SetupPythonEngine(engine);
+                });
             // Setup engines for any python engines that might be registered later on
             PythonEngineManager.Instance.AvailableEngines.CollectionChanged += OnPythonEngineCollectionChanged;
 

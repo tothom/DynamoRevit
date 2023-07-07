@@ -143,6 +143,7 @@ namespace Dynamo.Applications
             //var commonDataFolder = Path.Combine(Environment.GetFolderPath(
             //    Environment.SpecialFolder.CommonApplicationData),
             //    "Autodesk", "RVT " + app.VersionNumber, "Dynamo");
+
             var userDataFolder = Path.Combine(workDir, "Dynamo Revit");
             var commonDataFolder = Path.Combine(workDir, "Dynamo");
 
