@@ -11,7 +11,7 @@ using RevitServices.Elements;
 using RevitServices.Persistence;
 using RevitServices.Transactions;
 
-namespace DynamoRevitHeadless
+namespace RDADynamoHelper
 {
     public class GraphResultArgs
     {
@@ -22,61 +22,80 @@ namespace DynamoRevitHeadless
     {
         public string GraphPath;
     }
-    
+
     public class DynamoModelArgs
     {
     }
 
     public class RDADynamoHelper
     {
-        // public static Action<RunGraphArgs> RunDynamoGraph ;
-        public Action<GraphResultArgs> OnGraphResultReady = delegate(GraphResultArgs args) {  };
-        public Action<DynamoModelArgs> OnRunDynamoModelReady = delegate(DynamoModelArgs args) {  };
-        
-        private RDADynamo _model;
-        private ControlledApplication _application;
+        public static readonly string assemblyName = Assembly.GetExecutingAssembly().Location;
+        public static ControlledApplication ControlledApplication;
+        public static List<IUpdater> Updaters = new List<IUpdater>();
 
+        private static string _dynamoCorePath;
+        private readonly ControlledApplication _application;
+        private RDADynamo _model;
         private bool _modelPrepared;
+
+        // public static Action<RunGraphArgs> RunDynamoGraph ;
+        public Action<GraphResultArgs> OnGraphResultReady = delegate { };
+        public Action<DynamoModelArgs> OnRunDynamoModelReady = delegate { };
 
         public RDADynamoHelper(ControlledApplication application, string workDirectory)
         {
             _application = application;
             InitDynamoCore(_application);
-            WorkDirectory = workDirectory; 
+            WorkDirectory = workDirectory;
             _application.DocumentOpened += ApplicationOnDocumentOpened;
         }
 
         public string WorkDirectory { get; set; }
 
-        private void ApplicationOnDocumentOpened(object sender, DocumentOpenedEventArgs e)
+        public static string DynamoCorePath
         {
-            _model = new Dynamo.Applications.RDADynamo();
-            Console.WriteLine($"Preparing Dynamo model context at '{WorkDirectory}'");
-            _modelPrepared = _model.PrepareModel(sender as Application, WorkDirectory, out string msg);
-
-            Console.WriteLine(msg);
-            
-            if (_modelPrepared)
+            get
             {
-                OnRunDynamoModelReady?.Invoke(new DynamoModelArgs());
+                if (string.IsNullOrEmpty(_dynamoCorePath)) 
+                    _dynamoCorePath = GetDynamoCorePath();
+                return _dynamoCorePath;
             }
         }
-        
+
+        private void ApplicationOnDocumentOpened(object sender, DocumentOpenedEventArgs e)
+        {
+
+            _model = new RDADynamo();
+
+
+            Console.WriteLine($"Preparing Dynamo model context at '{WorkDirectory}'");
+
+            try
+            {
+                _modelPrepared = _model.PrepareModel(sender as Application, WorkDirectory, out string msg);
+                Console.WriteLine(msg);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                throw;
+            }
+
+
+            if (_modelPrepared) OnRunDynamoModelReady?.Invoke(new DynamoModelArgs());
+        }
+
         public void RunDynamoGraph(RunGraphArgs runGraphArgs)
         {
             _model.ExecuteWorkspace(runGraphArgs.GraphPath);
-            
+
             OnGraphResultReady?.Invoke(new GraphResultArgs());
         }
 
-        public static readonly string assemblyName = Assembly.GetExecutingAssembly().Location;
-        public static ControlledApplication ControlledApplication;
-        public static List<IUpdater> Updaters = new List<IUpdater>();
-        
         private bool InitDynamoCore(ControlledApplication application)
         {
             Console.WriteLine("<<!>> Starting to load D4DA");
-            
+
             bool resolveDynamoCore = TryResolveDynamoCore(application);
 
             if (!resolveDynamoCore)
@@ -88,8 +107,8 @@ namespace DynamoRevitHeadless
 
             TransactionManager.SetupManager(new AutomaticTransactionStrategy());
             ElementBinder.IsEnabled = true;
-            
-            RevitServicesUpdater.Initialize(RDADynamoHelper.Updaters);
+
+            RevitServicesUpdater.Initialize(Updaters);
 
             _ = LoadDependentComponents(); //(Dimitar) should we fail to load here if the internal method returns Failed?
 
@@ -97,23 +116,25 @@ namespace DynamoRevitHeadless
 
             return true;
         }
-        
+
         private bool LoadDependentComponents()
         {
             //(Dimitar) I can't find this assembly anywhere. Is it still relevant?
-            var dynamoRevitAditionsPath = Path.Combine(Path.GetDirectoryName(RDADynamoHelper.assemblyName), "DynamoRevitAdditions.dll");
-            
+            var dynamoRevitAditionsPath = Path.Combine(Path.GetDirectoryName(assemblyName), "DynamoRevitAdditions.dll");
+
             if (!File.Exists(dynamoRevitAditionsPath)) return false;
-            
+
             try
             {
                 var dynamoRevitAditionsAss = Assembly.LoadFrom(dynamoRevitAditionsPath);
                 if (dynamoRevitAditionsAss != null)
                 {
-                    var dynamoRevitAditionsLoader = dynamoRevitAditionsAss.CreateInstance("DynamoRevitAdditions.LoadManager");
+                    var dynamoRevitAditionsLoader =
+                        dynamoRevitAditionsAss.CreateInstance("DynamoRevitAdditions.LoadManager");
                     if (dynamoRevitAditionsLoader != null)
                     {
-                        dynamoRevitAditionsLoader.GetType().GetMethod("Initialize").Invoke(dynamoRevitAditionsLoader, null);
+                        dynamoRevitAditionsLoader.GetType().GetMethod("Initialize")
+                            .Invoke(dynamoRevitAditionsLoader, null);
                         return true;
                     }
                 }
@@ -127,58 +148,44 @@ namespace DynamoRevitHeadless
             return false;
         }
 
-        public static string DynamoCorePath
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(DynamoPath))
-                {
-                    DynamoPath = GetDynamoCorePath();
-                }
-                return DynamoPath;
-            }
-        }
-        
         private bool TryResolveDynamoCore(ControlledApplication application)
         {
-            if (RDADynamoHelper.IsRevitInternalAddin(application))
-            {
-                DynamoPath = Path.GetDirectoryName(Path.GetDirectoryName(RDADynamoHelper.assemblyName));
-            }
-            if (string.IsNullOrEmpty(RDADynamoHelper.DynamoCorePath))
+            if (IsRevitInternalAddin(application))
+                _dynamoCorePath = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
+            if (string.IsNullOrEmpty(DynamoCorePath))
             {
                 var fvi = FileVersionInfo.GetVersionInfo(assemblyName);
                 var shortversion = fvi.FileMajorPart + "." + fvi.FileMinorPart;
 
                 return false;
             }
+
             return true;
         }
-        
+
         /// <summary>
-        /// Finds the Dynamo Core path by looking into registery or potentially a config file.
+        ///     Finds the Dynamo Core path by looking into registery or potentially a config file.
         /// </summary>
         /// <returns>The root folder path of Dynamo Core.</returns>
         internal static string GetDynamoCorePath()
         {
-            var debug = @"E:\GitHub\Dynamo\bin\AnyCPU\Debug";
+            var debug = @"E:\GitHub\Dynamo\bin\AnyCPU\Release";
             if (Directory.Exists(debug))
                 return debug;
 
             var dynamoRevitRootDirectory = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
             return dynamoRevitRootDirectory;
-            
+
             var dynamoRoot = GetDynamoRoot(dynamoRevitRootDirectory);
 
             var assembly = Assembly.LoadFrom(Path.Combine(dynamoRevitRootDirectory, "DynamoInstallDetective.dll"));
             var type = assembly.GetType("DynamoInstallDetective.DynamoProducts");
 
             var methodToInvoke = type.GetMethod("GetDynamoPath", BindingFlags.Public | BindingFlags.Static);
-            
+
             if (methodToInvoke == null)
-            {
-                throw new MissingMethodException("Method 'DynamoInstallDetective.DynamoProducts.GetDynamoPath' not found");
-            }
+                throw new MissingMethodException(
+                    "Method 'DynamoInstallDetective.DynamoProducts.GetDynamoPath' not found");
 
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             var methodParams = new object[] { version, dynamoRoot };
@@ -186,7 +193,7 @@ namespace DynamoRevitHeadless
         }
 
         /// <summary>
-        /// Gets Dynamo Root folder from the given DynamoRevit root.
+        ///     Gets Dynamo Root folder from the given DynamoRevit root.
         /// </summary>
         /// <param name="dynamoRevitRoot">The root folder of DynamoRevit binaries</param>
         /// <returns>The root folder path of Dynamo Core</returns>
@@ -204,17 +211,17 @@ namespace DynamoRevitHeadless
                 parent = Directory.GetParent(parent.FullName);
             }
 
-            return parent != null ? Path.Combine(Path.GetDirectoryName(parent.FullName), @"Dynamo", path) : dynamoRevitRoot;
+            return parent != null
+                ? Path.Combine(Path.GetDirectoryName(parent.FullName), @"Dynamo", path)
+                : dynamoRevitRoot;
         }
 
-        public static string DynamoPath;
-
         /// <summary>
-        /// Handler to the ApplicationDomain's AssemblyResolve event.
-        /// If an assembly's location cannot be resolved, an exception is
-        /// thrown. Failure to resolve an assembly will leave Dynamo in 
-        /// a bad state, so we should throw an exception here which gets caught 
-        /// by our unhandled exception handler and presents the crash dialogue.
+        ///     Handler to the ApplicationDomain's AssemblyResolve event.
+        ///     If an assembly's location cannot be resolved, an exception is
+        ///     thrown. Failure to resolve an assembly will leave Dynamo in
+        ///     a bad state, so we should throw an exception here which gets caught
+        ///     by our unhandled exception handler and presents the crash dialogue.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
@@ -227,10 +234,7 @@ namespace DynamoRevitHeadless
             try
             {
                 assemblyPath = Path.Combine(DynamoCorePath, assemblyName);
-                if (File.Exists(assemblyPath))
-                {
-                    return Assembly.LoadFrom(assemblyPath);
-                }
+                if (File.Exists(assemblyPath)) return Assembly.LoadFrom(assemblyPath);
 
                 var assemblyLocation = Assembly.GetExecutingAssembly().Location;
                 var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
@@ -244,16 +248,17 @@ namespace DynamoRevitHeadless
                     assemblyPath = Path.Combine(parentDirectory.FullName, assemblyName);
                 }
 
-                return (File.Exists(assemblyPath) ? Assembly.LoadFrom(assemblyPath) : null);
+                return File.Exists(assemblyPath) ? Assembly.LoadFrom(assemblyPath) : null;
             }
             catch (Exception ex)
             {
-                throw new Exception($"The location of the assembly, {assemblyPath} could not be resolved for loading.", ex);
+                throw new Exception($"The location of the assembly, {assemblyPath} could not be resolved for loading.",
+                    ex);
             }
         }
 
         /// <summary>
-        /// Whether the DynamoCore and DynamoRevit are in Revit's internal Addin folder
+        ///     Whether the DynamoCore and DynamoRevit are in Revit's internal Addin folder
         /// </summary>
         /// <param name="application"></param>
         /// <returns>True is that Dynamo and DynamoRevit are in Revit internal Addins folder</returns>
@@ -265,32 +270,32 @@ namespace DynamoRevitHeadless
             var dynamoRevitRoot = Path.GetDirectoryName(Path.GetDirectoryName(assemblyName));
             var RevitRoot = Path.GetDirectoryName(application.GetType().Assembly.Location);
             if (!dynamoRevitRoot.StartsWith(RevitRoot)) return false;
-            
-            if (File.Exists(Path.Combine(dynamoRevitRoot, "DynamoInstallDetective.dll")) && File.Exists(Path.Combine(dynamoRevitRoot, "DynamoCore.dll")))
+
+            if (File.Exists(Path.Combine(dynamoRevitRoot, "DynamoInstallDetective.dll")) &&
+                File.Exists(Path.Combine(dynamoRevitRoot, "DynamoCore.dll")))
             {
-                var version_DynamoInstallDetective = FileVersionInfo.GetVersionInfo(Path.Combine(dynamoRevitRoot, "DynamoInstallDetective.dll"));
-                var version_DynamoCore = FileVersionInfo.GetVersionInfo(Path.Combine(dynamoRevitRoot, "DynamoCore.dll"));
+                var version_DynamoInstallDetective =
+                    FileVersionInfo.GetVersionInfo(Path.Combine(dynamoRevitRoot, "DynamoInstallDetective.dll"));
+                var version_DynamoCore =
+                    FileVersionInfo.GetVersionInfo(Path.Combine(dynamoRevitRoot, "DynamoCore.dll"));
                 if (version_DynamoCore.FileMajorPart == version_DynamoInstallDetective.FileMajorPart &&
                     version_DynamoCore.FileMinorPart == version_DynamoInstallDetective.FileMinorPart &&
                     version_DynamoCore.FileBuildPart == version_DynamoInstallDetective.FileBuildPart
                    )
                     return true;
             }
+
             return false;
         }
-        
+
         public void SubscribeAssemblyEvents()
         {
-            AppDomain.CurrentDomain.AssemblyResolve += RDADynamoHelper.ResolveAssembly;
+            AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
         }
-        
+
         private void UnsubscribeAssemblyEvents()
         {
-            AppDomain.CurrentDomain.AssemblyResolve -= RDADynamoHelper.ResolveAssembly;
+            AppDomain.CurrentDomain.AssemblyResolve -= ResolveAssembly;
         }
-        
-        
     }
-
-
 }
