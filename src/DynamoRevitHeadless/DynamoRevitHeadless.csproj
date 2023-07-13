@@ -124,6 +124,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /y "$(SolutionDir)packages\GregRevitAuth\lib\net48\GregRevitAuth.dll" "$(TargetDir)"
-copy /y "$(SolutionDir)packages\Autodesk.Forge.DesignAutomation.Revit.2024.0.2\lib\net48\DesignAutomationBridge.dll" "$(TargetDir)"</PostBuildEvent>
+copy /y "$(SolutionDir)packages\Autodesk.Forge.DesignAutomation.Revit.2024.0.2\lib\net48\DesignAutomationBridge.dll" "$(TargetDir)"
+
+copy /y "$(OutputPath)*.dll" "$(AppData)\Autodesk\Revit\Addins\2024\RDADynamo"</PostBuildEvent>
   </PropertyGroup>
 </Project>
