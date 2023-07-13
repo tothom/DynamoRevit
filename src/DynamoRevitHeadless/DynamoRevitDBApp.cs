@@ -5,6 +5,7 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using RevitServices.Elements;
 using DesignAutomationFramework;
+using RDADynamoHelper;
 
 namespace DynamoRevitHeadless
 {
@@ -13,13 +14,16 @@ namespace DynamoRevitHeadless
     public class DynamoRevitDBApp : IExternalDBApplication
     {
         private string _dynamoWorkDirectory;
-        private RDADynamoHelper DynamoHelper { get; set; }
+        private RDADynamoHelper.RDADynamoHelper DynamoHelper { get; set; }
         public ExternalDBApplicationResult OnStartup(ControlledApplication application)
         {
             try
             {
                 _dynamoWorkDirectory = Path.Combine(Directory.GetCurrentDirectory(), "dyn_work");
-                DynamoHelper = new RDADynamoHelper(application, _dynamoWorkDirectory);
+                DynamoHelper = new RDADynamoHelper.RDADynamoHelper(application, _dynamoWorkDirectory);
+
+                DesignAutomationBridge.DesignAutomationReadyEvent += HandleDesignAutomationReadyEvent;
+                
                 return ExternalDBApplicationResult.Succeeded;
             }
             catch (Exception ex)
@@ -37,12 +41,15 @@ namespace DynamoRevitHeadless
             return ExternalDBApplicationResult.Succeeded;
         }
 
+
         public void HandleDesignAutomationReadyEvent(object sender, DesignAutomationReadyEventArgs e)
         {
             // DynamoHelper.OnRunDynamoModelReady += OnRunDynamoModelReady;
-            
+
+            string graphPath = Path.Combine(Directory.GetCurrentDirectory(), "CountWalls.dyn");
+
             DynamoHelper.OnGraphResultReady += ProcessResult;
-            DynamoHelper.RunDynamoGraph(new RunGraphArgs() { GraphPath = "myGraph.dyn" });
+            DynamoHelper.RunDynamoGraph(new RunGraphArgs() { GraphPath = graphPath });
             
             //if (loaded)
             //{
