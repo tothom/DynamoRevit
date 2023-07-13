@@ -94,7 +94,7 @@ namespace Dynamo.Applications
             var path =
                     Environment.GetEnvironmentVariable(
                         "Path",
-                        EnvironmentVariableTarget.Process) + ";" + RDADynamoHelper.DynamoCorePath;
+                        EnvironmentVariableTarget.Process) + ";" + RDADynamoHelper.RDADynamoHelper.DynamoCorePath;
             Environment.SetEnvironmentVariable("Path", path, EnvironmentVariableTarget.Process);
         }
 
@@ -134,7 +134,7 @@ namespace Dynamo.Applications
             // Temporary fix to pre-load DLLs that were also referenced in Revit folder. 
             // To do: Need to align with Revit when provided a chance.
             PreloadDynamoCoreDlls();
-            var corePath = RDADynamoHelper.DynamoCorePath;
+            var corePath = RDADynamoHelper.RDADynamoHelper.DynamoCorePath;
             var dynamoRevitExePath = Assembly.GetExecutingAssembly().Location;
             var dynamoRevitRoot = Path.GetDirectoryName(dynamoRevitExePath);// ...\Revit_xxxx\ folder
 
@@ -149,7 +149,7 @@ namespace Dynamo.Applications
 
             // when Dynamo runs on top of Revit we must load the same version of ASM as revit
             // so tell Dynamo core we've loaded that version.
-            var loadedLibGVersion = PreloadAsmFromRevit(app.VersionNumber);
+            //var loadedLibGVersion = PreloadAsmFromRevit(app.VersionNumber);
 
             DocumentManager.Instance.PrepareForAutomation(app);
             
@@ -160,7 +160,7 @@ namespace Dynamo.Applications
             {
                 DynamoCorePath = corePath,
                 DynamoHostPath = dynamoRevitRoot,
-                GeometryFactoryPath = GetGeometryFactoryPath(corePath, loadedLibGVersion),
+                GeometryFactoryPath = null, //GetGeometryFactoryPath(corePath, loadedLibGVersion),
                 PathResolver = new RevitPathResolver(userDataFolder, commonDataFolder),
                 Context = GetRevitContext(app),
                 SchedulerThread = new RDASchedulerThread(),
@@ -180,13 +180,14 @@ namespace Dynamo.Applications
         internal static Version PreloadAsmFromRevit(string verNum)
         {
             var asmLocation = $@"C:\Program Files\Common Files\Autodesk Shared\Revit Interoperability {verNum}\Rx";
+            //var asmLocation = $@"C:\Program Files\Autodesk\Revit {verNum}";
             if (!Directory.Exists(asmLocation))
             {
                 throw new Exception($"Can't find ASM location at {asmLocation}");
             }
 
             Version libGVersion = findRevitASMVersion(asmLocation);
-            var dynCorePath = RDADynamoHelper.DynamoCorePath;
+            var dynCorePath = RDADynamoHelper.RDADynamoHelper.DynamoCorePath;
             // Get the corresponding libG preloader location for the target ASM loading version.
             // If there is exact match preloader version to the target ASM version, use it, 
             // otherwise use the closest below.
